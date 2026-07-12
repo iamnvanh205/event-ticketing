@@ -23,7 +23,6 @@ spring:
     open-in-view: false         # Tắt OSIV pattern — tránh N+1 query ẩn
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: false
 
   # Flyway Migration
