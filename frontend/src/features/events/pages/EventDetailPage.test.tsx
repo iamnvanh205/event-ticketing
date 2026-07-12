@@ -32,7 +32,7 @@ const mockTicketTypes = [
   { id: 11, eventId: 1, name: 'VIP', price: 500000, quantityTotal: 20, quantityRemaining: 0, salesStartAt: '', salesEndAt: '' },
 ]
 
-const makeReserved = (status = 'RESERVED') => ({
+const makeReserved = (status: import('../../tickets/types').TicketStatus = 'RESERVED') => ({
   id: 99, ticketTypeId: 10, status, quantity: 1,
   qrCode: status === 'CONFIRMED' ? 'qr-code-value' : null,
   expiresAt: '2026-08-01T09:15:00Z', reservedAt: '2026-08-01T09:00:00Z',
