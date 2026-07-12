@@ -21,7 +21,7 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config
-    if (error.response?.status !== 401 || original?._retry || !refreshAccessToken) {
+    if (error.response?.status !== 401 || original?.url?.includes('/auth/refresh') || original?._retry || !refreshAccessToken) {
       throw error
     }
     original._retry = true
