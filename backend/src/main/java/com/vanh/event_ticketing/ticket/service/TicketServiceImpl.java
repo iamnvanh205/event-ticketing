@@ -59,7 +59,7 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = BusinessException.class)
     public TicketResponse confirm(Long id, CustomUserDetails userDetails) {
         Ticket ticket = ownedTicket(id, userDetails);
         if (!"RESERVED".equals(ticket.getStatus())) {
