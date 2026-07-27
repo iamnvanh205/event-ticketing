@@ -1,4 +1,4 @@
-# 06 - AUTHENTICATION & AUTHORIZATION
+# 06 - Xác Thực & Phân Quyền
 
 ## Mục lục
 
@@ -11,7 +11,7 @@
 7. [Password Policy](#7-password-policy)
 8. [Quản lý tài khoản CHECKIN_STAFF](#8-quản-lý-tài-khoản-checkin_staff)
 9. [Security Rules chung](#9-security-rules-chung)
-10. [Best Practices](#10-best-practices)
+10. [Nguyên tắc chung](#10-nguyên-tắc-chung)
 
 ---
 
@@ -20,21 +20,21 @@
 | Thành phần | Lựa chọn |
 |---|---|
 | Cơ chế xác thực | JWT (access token + refresh token) |
-| Đăng nhập Customer | Google OAuth2 **hoặc** email/password |
+| Đăng nhập Customer | Google OAuth2 hoặc email/password |
 | Đăng nhập Organizer/Admin/Checkin Staff | Email/password |
 | Access token TTL | 15 phút |
 | Refresh token TTL | 7 ngày |
 | Refresh token storage | Cookie `HttpOnly` |
 | Refresh token rotation | Có |
-| Phân quyền | RBAC theo 4 role cố định + Ownership check ở tầng Service |
+| Phân quyền | RBAC theo 4 role cố định + kiểm tra ownership ở tầng Service |
 
-> TODO: Need confirmation — phương thức đăng nhập cho `ORGANIZER`/`ADMIN`/`CHECKIN_STAFF` (email/password) là **giả định hợp lý dựa trên ngữ cảnh dự án**, cần xác nhận chính thức trước khi code, vì nghiên cứu ban đầu chỉ chốt chắc chắn phần Customer dùng Google OAuth2.
+**Design Consideration:** phương thức đăng nhập email/password cho `ORGANIZER`/`ADMIN`/`CHECKIN_STAFF` là giả định hợp lý dựa trên ngữ cảnh dự án, cần được xác nhận chính thức trước khi triển khai, vì nghiên cứu ban đầu chỉ chốt chắc chắn phần Customer dùng Google OAuth2.
 
 ## 2. JWT — Access Token & Refresh Token
 
 | Token | TTL | Lưu ở đâu | Dùng để |
 |---|---|---|---|
-| **Access Token** | 15 phút | Bộ nhớ frontend (JS variable/state, KHÔNG localStorage) | Gửi kèm mọi API request qua header `Authorization: Bearer <token>` |
+| **Access Token** | 15 phút | Bộ nhớ frontend (JS variable/state, không dùng localStorage) | Gửi kèm mọi API request qua header `Authorization: Bearer <token>` |
 | **Refresh Token** | 7 ngày | Cookie `HttpOnly`, `Secure`, `SameSite=Strict` | Gọi `/auth/refresh` để lấy access token mới khi hết hạn |
 
 ```java
@@ -59,11 +59,11 @@ public class JwtTokenProvider {
 }
 ```
 
-Access token **không** lưu `localStorage`/`sessionStorage` để giảm rủi ro XSS — giữ trong state của ứng dụng (React state/context), chấp nhận mất khi refresh trang (tự động lấy lại qua `/auth/refresh` nhờ cookie).
+Access token không được lưu tại `localStorage`/`sessionStorage` nhằm giảm rủi ro XSS — được giữ trong state của ứng dụng (React state/context), chấp nhận mất khi tải lại trang (tự động lấy lại qua `/auth/refresh` nhờ cookie).
 
 ## 3. Google OAuth2 (Customer)
 
-Luồng Authorization Code chuẩn, dùng Spring Security OAuth2 Client:
+Luồng Authorization Code chuẩn, sử dụng Spring Security OAuth2 Client:
 
 ```
 Customer bấm "Đăng nhập với Google"
@@ -88,11 +88,13 @@ spring:
             scope: [ email, profile ]
 ```
 
-Tài khoản đăng ký qua Google OAuth2 có `password_hash = NULL`, `google_id` = ID Google. Nếu email đã tồn tại qua đăng ký thường (có `password_hash`), khuyến nghị liên kết tài khoản theo `email` thay vì tạo user trùng — chi tiết xử lý xung đột **cần xác nhận thêm khi triển khai thực tế** (> TODO: Need confirmation).
+Tài khoản đăng ký qua Google OAuth2 có `password_hash = NULL`, `google_id` = ID Google. Nếu email đã tồn tại qua đăng ký thường (có `password_hash`), khuyến nghị liên kết tài khoản theo `email` thay vì tạo user trùng.
+
+**Known Limitations:** chi tiết xử lý xung đột khi email đã tồn tại qua kênh đăng ký khác cần được xác nhận thêm khi triển khai thực tế.
 
 ## 4. Refresh Token Rotation
 
-Mỗi lần gọi `/auth/refresh`, hệ thống **cấp refresh token mới và vô hiệu hoá refresh token cũ ngay lập tức**. Nếu 1 refresh token cũ (đã bị vô hiệu hoá) bị dùng lại → dấu hiệu token bị đánh cắp, nên từ chối toàn bộ và yêu cầu đăng nhập lại.
+Mỗi lần gọi `/auth/refresh`, hệ thống cấp refresh token mới và vô hiệu hoá refresh token cũ ngay lập tức. Nếu một refresh token cũ (đã bị vô hiệu hoá) bị dùng lại, đây là dấu hiệu token bị đánh cắp, hệ thống sẽ từ chối toàn bộ và yêu cầu đăng nhập lại.
 
 ```java
 @Transactional
@@ -114,17 +116,19 @@ public RefreshResult refresh(String oldRefreshToken) {
 }
 ```
 
-> Lưu trữ refresh token: khuyến nghị lưu **hash** (không lưu plaintext) trong bảng riêng (VD: `refresh_tokens`), có cột `revoked`, `expires_at`, `user_id`. Bảng này chưa được liệt kê trong [`05-DATABASE.md`](./05-DATABASE.md) — cần bổ sung khi triển khai (> TODO: Need confirmation về schema chi tiết bảng `refresh_tokens`).
+**Design Consideration:** khuyến nghị lưu hash (không lưu plaintext) của refresh token trong bảng riêng (ví dụ: `refresh_tokens`), có cột `revoked`, `expires_at`, `user_id`.
+
+**Known Limitations:** bảng `refresh_tokens` chưa được liệt kê trong [`05-DATABASE.md`](./05-DATABASE.md) — cần bổ sung schema chi tiết khi triển khai.
 
 ## 5. RBAC — Role-Based Access Control
 
-4 role cố định, mỗi role có tập quyền cố định (không phân quyền động/tuỳ biến):
+Hệ thống có 4 role cố định, mỗi role có tập quyền cố định (không phân quyền động/tuỳ biến):
 
 | Role | Quyền chính |
 |---|---|
 | `ADMIN` | Toàn quyền: quản lý user, khoá/mở tài khoản, xem toàn bộ event |
-| `ORGANIZER` | CRUD event/ticket-type **của chính mình**, tạo Checkin Staff, xem dashboard event của mình |
-| `CHECKIN_STAFF` | Check-in vé **thuộc event được gán**, xem lịch sử check-in của event đó |
+| `ORGANIZER` | CRUD event/ticket-type của chính mình, tạo Checkin Staff, xem dashboard event của mình |
+| `CHECKIN_STAFF` | Check-in vé thuộc event được gán, xem lịch sử check-in của event đó |
 | `CUSTOMER` | Đặt vé, xem vé của chính mình |
 
 ```java
@@ -139,7 +143,7 @@ public ResponseEntity<PageResponse<UserResponse>> listUsers(Pageable pageable) {
 
 ## 6. Ownership Check
 
-RBAC theo role **là chưa đủ** — có 2 tình huống bắt buộc kiểm tra thêm quyền sở hữu ở **tầng Service**, không chỉ dựa vào `@PreAuthorize` theo role:
+Cơ chế RBAC theo role là chưa đủ — hệ thống áp dụng thêm 2 tình huống bắt buộc kiểm tra quyền sở hữu ở tầng Service, không chỉ dựa vào `@PreAuthorize` theo role:
 
 ### 6.1. Organizer chỉ sửa/xoá event của chính mình
 
@@ -156,7 +160,7 @@ public EventResponse updateEvent(Long eventId, EventRequest request, Long curren
 }
 ```
 
-**Organizer A không được sửa/xoá event của Organizer B** — dù cả 2 cùng role `ORGANIZER`.
+Organizer A không được sửa/xoá event của Organizer B, dù cả hai cùng role `ORGANIZER`.
 
 ### 6.2. Checkin Staff chỉ check-in vé thuộc event được gán
 
@@ -175,15 +179,15 @@ public CheckInResult checkIn(CheckInRequest request, Long staffId) {
 }
 ```
 
-**Checkin Staff chỉ được check-in vé thuộc event mà mình được gán**, không được check-in vé của event khác — kể cả khi biết mã QR hợp lệ của event khác.
+Checkin Staff chỉ được check-in vé thuộc event mà mình được gán, không được check-in vé của event khác — kể cả khi biết mã QR hợp lệ của event khác.
 
 ## 7. Password Policy
 
-Mức tối thiểu hợp lý (dự án cá nhân, không cần chính sách nặng nề):
+Áp dụng mức tối thiểu hợp lý (dự án cá nhân, không cần chính sách nặng nề):
 
-- Tối thiểu **8 ký tự**
-- Không yêu cầu bắt buộc ký tự đặc biệt/hoa/số (không phức tạp hoá)
-- Hash bằng **BCrypt** (`BCryptPasswordEncoder`, strength mặc định 10)
+- Tối thiểu 8 ký tự
+- Không yêu cầu bắt buộc ký tự đặc biệt/hoa/số
+- Hash bằng BCrypt (`BCryptPasswordEncoder`, strength mặc định 10)
 
 ```java
 @Bean
@@ -202,15 +206,15 @@ public record RegisterRequest(
 
 ## 8. Quản lý tài khoản CHECKIN_STAFF
 
-- `CHECKIN_STAFF` **không tự đăng ký**. Tài khoản được **ORGANIZER chủ động tạo**, gán ngay vào **1 event cụ thể** của mình (`POST /events/{eventId}/staff`, xem [`04-API.md`](./04-API.md#11-module-userstaff)).
-- Mỗi `CHECKIN_STAFF` gắn với đúng 1 event tại một thời điểm (cột `users.assigned_event_id`), phù hợp MVP. Phân quyền theo nhiều cổng cụ thể (multi-gate) để ở giai đoạn mở rộng sau (`staff_gate_assignments`, xem [`05-DATABASE.md`](./05-DATABASE.md#15-post-mvp-staff_gate_assignments)).
+- `CHECKIN_STAFF` không tự đăng ký. Tài khoản được ORGANIZER chủ động tạo, gán ngay vào một event cụ thể của mình (`POST /events/{eventId}/staff`, xem [`04-API.md`](./04-API.md#11-module-userstaff)).
+- Mỗi `CHECKIN_STAFF` gắn với đúng một event tại một thời điểm (cột `users.assigned_event_id`), phù hợp với MVP. Phân quyền theo nhiều cổng cụ thể (multi-gate) được để ở giai đoạn mở rộng sau (`staff_gate_assignments`, xem [`05-DATABASE.md`](./05-DATABASE.md#15-định-hướng-mở-rộng-staff_gate_assignments)).
 
 ## 9. Security Rules chung
 
-- Mọi endpoint mặc định **yêu cầu xác thực** trừ khi khai báo rõ `permitAll()` (VD: `/auth/login`, `/auth/register`, `GET /events` công khai).
+- Mọi endpoint mặc định yêu cầu xác thực, trừ khi khai báo rõ `permitAll()` (ví dụ: `/auth/login`, `/auth/register`, `GET /events` công khai).
 - CORS: chỉ cho phép origin của frontend (`https://event-ticketing.vercel.app` production, `http://localhost:5173` local).
-- Mọi secret (JWT signing key, Google Client Secret, Cloudinary key) lấy từ **biến môi trường**, không hardcode, không commit vào Git — xem [`11-DEPLOYMENT.md`](./11-DEPLOYMENT.md#secrets-management).
-- Access token ký bằng thuật toán **HS256** với secret đủ mạnh (tối thiểu 256-bit), đọc từ biến môi trường `JWT_SECRET`.
+- Mọi secret (JWT signing key, Google Client Secret, Cloudinary key) lấy từ biến môi trường, không hardcode, không commit vào Git — xem [`11-DEPLOYMENT.md`](./11-DEPLOYMENT.md#6-secrets-management).
+- Access token ký bằng thuật toán HS256 với secret đủ mạnh (tối thiểu 256-bit), đọc từ biến môi trường `JWT_SECRET`.
 
 ```java
 @Configuration
@@ -232,9 +236,9 @@ public class SecurityConfig {
 }
 ```
 
-## 10. Best Practices
+## 10. Nguyên tắc chung
 
-- Không bao giờ tin `role` gửi lên từ client — luôn lấy `role` từ JWT claim đã ký, không từ request body.
-- Ownership check luôn thực hiện ở **Service**, không ở Controller, để đảm bảo áp dụng nhất quán kể cả khi có nhiều entrypoint gọi cùng Service.
+- Không tin `role` gửi lên từ client — luôn lấy `role` từ JWT claim đã ký, không từ request body.
+- Ownership check luôn thực hiện ở tầng Service, không ở Controller, để đảm bảo áp dụng nhất quán kể cả khi có nhiều entrypoint gọi cùng Service.
 - Refresh token luôn dùng cookie `HttpOnly` + `Secure` (bắt buộc HTTPS ở production) — không bao giờ trả refresh token trong JSON body.
 - Ghi log (`WARN`) mọi lần từ chối do ownership/permission để dễ điều tra khi có hành vi bất thường.

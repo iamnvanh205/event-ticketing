@@ -1,10 +1,10 @@
-# 05 - DATABASE
+# 05 - Cơ Sở Dữ Liệu
 
 ## Mục lục
 
 1. [DBMS](#1-dbms)
 2. [ERD tổng quan](#2-erd-tổng-quan)
-3. [Naming Convention](#3-naming-convention)
+3. [Quy ước đặt tên](#3-quy-ước-đặt-tên)
 4. [Bảng: roles](#4-bảng-roles)
 5. [Bảng: users](#5-bảng-users)
 6. [Bảng: events](#6-bảng-events)
@@ -16,16 +16,16 @@
 12. [Soft Delete](#12-soft-delete)
 13. [Migration (Flyway)](#13-migration-flyway)
 14. [Seed Data](#14-seed-data)
-15. [Post-MVP: staff_gate_assignments](#15-post-mvp-staff_gate_assignments)
+15. [Định hướng mở rộng: staff_gate_assignments](#15-định-hướng-mở-rộng-staff_gate_assignments)
 
 ---
 
 ## 1. DBMS
 
-**PostgreSQL**, hosted trên **Neon**.
+Hệ quản trị cơ sở dữ liệu: **PostgreSQL**, hosted trên **Neon**.
 
-- **Runtime (application)**: dùng **pooled connection string** của Neon (qua PgBouncer), phù hợp cho nhiều connection ngắn hạn từ Spring Boot connection pool (HikariCP).
-- **Migration (Flyway)**: dùng **direct connection string** (không qua pooler), vì một số thao tác DDL/lock migration cần connection trực tiếp.
+- **Runtime (application)**: sử dụng pooled connection string của Neon (qua PgBouncer), phù hợp cho nhiều connection ngắn hạn từ Spring Boot connection pool (HikariCP).
+- **Migration (Flyway)**: sử dụng direct connection string (không qua pooler), do một số thao tác DDL/lock migration cần connection trực tiếp.
 
 ```yaml
 # application-prod.yml (minh hoạ, giá trị thật lấy từ biến môi trường)
@@ -43,59 +43,59 @@ spring:
 │   roles   │1      *│    users     │1      *│    events    │
 │───────────│────────│──────────────│────────│──────────────│
 │ id        │        │ id           │        │ id           │
-│ name      │        │ email        │        │ organizer_id │──┐
-└───────────┘        │ password_hash│        │ name         │  │ FK → users.id
-                      │ google_id    │        │ start_time   │  │
-                      │ role_id      │──┐     │ end_time     │  │
-                      │ assigned_    │  │FK   │ status       │  │
-                      │  event_id ───┼──┼─────│ deleted_at   │  │
-                      └──────────────┘  │     └──────┬───────┘  │
-                                         │            │1         │
-                                         │            │*         │
-                                         │     ┌──────▼───────┐  │
-                                         │     │ ticket_types │  │
-                                         │     │──────────────│  │
-                                         │     │ id           │  │
-                                         │     │ event_id     │  │
-                                         │     │ price        │  │
-                                         │     │ quantity_*   │  │
-                                         │     └──────┬───────┘  │
-                                         │            │1         │
-                                         │            │*         │
-                                         │     ┌──────▼───────┐  │
-                                         │     │   tickets    │  │
-                                         │     │──────────────│  │
-                                         │     │ id           │  │
-                                         │     │ ticket_type_id│ │
-                                         │     │ customer_id ─┼──┘ FK → users.id
-                                         │     │ qr_code      │
-                                         │     │ status       │
-                                         │     └──────┬───────┘
-                                         │            │1
-                                         │            │*
-                                    ┌────▼────┐  ┌────▼─────────┐
-                                    │  gates  │1*│ checkin_logs │
-                                    │─────────│──│──────────────│
-                                    │ id      │  │ id           │
-                                    │ event_id│  │ ticket_id    │
-                                    │ name    │  │ gate_id      │
-                                    └─────────┘  │ staff_id ────┼──▶ users.id
-                                                  │ result       │
-                                                  └──────────────┘
+│ name      │        │ email        │        │ organizer_id │───┐
+└───────────┘        │ password_hash│        │ name         │   │ FK → users.id
+                     │ google_id    │        │ start_time   │   │
+                     │ role_id      │──┐     │ end_time     │   │
+                     │ assigned_    │  │FK   │ status       │   │
+                     │ event_id     |──┼─────│ deleted_at   │   │
+                     └──────────────┘  │     └──────┬───────┘   │
+                                       │            │1          │
+                                       │            │*          │
+                                       │     ┌──────▼───────┐   │
+                                       │     │ ticket_types │   │
+                                       │     │──────────────│   │
+                                       │     │ id           │   │
+                                       │     │ event_id     │   │
+                                       │     │ price        │   │
+                                       │     │ quantity_*   │   │
+                                       │     └──────┬───────┘   │
+                                       │            │1          │
+                                       │            │*          │
+                                       │     ┌──────▼────────┐  │
+                                       │     │   tickets     │  │
+                                       │     │───────────────│  │
+                                       │     │ id            │  │
+                                       │     │ ticket_type_id│  │
+                                       │     │ customer_id   |──┘ FK → users.id
+                                       │     │ qr_code       │
+                                       │     │ status        │
+                                       │     └──────┬────────┘
+                                       │            │1
+                                       │            │*
+                                  ┌────▼────┐  ┌────▼─────────┐
+                                  │  gates  │1*│ checkin_logs │
+                                  │─────────│──│──────────────│
+                                  │ id      │  │ id           │
+                                  │ event_id│  │ ticket_id    │
+                                  │ name    │  │ gate_id      │
+                                  └─────────┘  │ staff_id     |──▶ users.id
+                                               │ result       │
+                                               └──────────────┘
 ```
 
-## 3. Naming Convention
+## 3. Quy ước đặt tên
 
 - Bảng: `snake_case`, số nhiều (`ticket_types`, `checkin_logs`)
 - Cột: `snake_case` (`quantity_remaining`, `created_at`)
 - Khoá chính: `id` (kiểu `BIGSERIAL` / `BIGINT GENERATED ALWAYS AS IDENTITY`)
-- Khoá ngoại: `<tên_bảng_số_ít>_id` (VD: `event_id`, `ticket_type_id`, `gate_id`, `staff_id`, `organizer_id`, `customer_id`)
+- Khoá ngoại: `<tên_bảng_số_ít>_id` (ví dụ: `event_id`, `ticket_type_id`, `gate_id`, `staff_id`, `organizer_id`, `customer_id`)
 - Mọi bảng nghiệp vụ có `created_at`, `updated_at` (trừ `checkin_logs` chỉ cần `created_at` vì log không sửa)
 - Cột optimistic lock: `version` (kiểu `INT`, mặc định `0`)
 
 ## 4. Bảng: roles
 
-Bảng lookup, dữ liệu tĩnh (seed sẵn), 1 user – 1 role qua `role_id`.
+Bảng lookup, dữ liệu tĩnh (seed sẵn), quan hệ 1 user – 1 role qua `role_id`.
 
 | Cột | Kiểu | Ràng buộc |
 |---|---|---|
@@ -120,7 +120,7 @@ CREATE TABLE roles (
 | `full_name` | `VARCHAR(255)` | `NOT NULL` | |
 | `role_id` | `BIGINT` | `FK → roles.id NOT NULL` | |
 | `assigned_event_id` | `BIGINT` | `FK → events.id NULL` | Chỉ có giá trị khi `role = CHECKIN_STAFF`; xác định event mà staff được gán |
-| `is_active` | `BOOLEAN` | `NOT NULL DEFAULT true` | Khoá tài khoản (ADMIN thao tác) |
+| `is_active` | `BOOLEAN` | `NOT NULL DEFAULT true` | Khoá tài khoản (thao tác bởi ADMIN) |
 | `version` | `INT` | `NOT NULL DEFAULT 0` | Optimistic lock |
 | `created_at` | `TIMESTAMPTZ` | `NOT NULL DEFAULT now()` | |
 | `updated_at` | `TIMESTAMPTZ` | `NOT NULL DEFAULT now()` | |
@@ -144,9 +144,9 @@ CREATE INDEX idx_users_role_id ON users(role_id);
 CREATE INDEX idx_users_assigned_event_id ON users(assigned_event_id);
 ```
 
-> Ràng buộc `assigned_event_id` chỉ có ý nghĩa với `CHECKIN_STAFF` được xử lý ở tầng ứng dụng (Bean Validation/Service), không dùng `CHECK constraint` phụ thuộc bảng khác ở mức DB để giữ đơn giản.
+**Design Consideration:** ràng buộc `assigned_event_id` chỉ có ý nghĩa với `CHECKIN_STAFF`, được xử lý ở tầng ứng dụng (Bean Validation/Service), không dùng `CHECK constraint` phụ thuộc bảng khác ở mức DB để giữ đơn giản.
 
-> TODO: Need confirmation — bảng `users` hiện có cả `password_hash` và `google_id` để hỗ trợ 2 kiểu đăng nhập (email/password cho Organizer/Admin/Checkin Staff, Google OAuth2 cho Customer) theo giả định tại [`04-API.md`](./04-API.md#4-module-auth). Cần xác nhận lại giả định này trước khi migrate.
+**Known Limitations:** bảng `users` hiện có cả `password_hash` và `google_id` để hỗ trợ hai kiểu đăng nhập (email/password cho Organizer/Admin/Checkin Staff, Google OAuth2 cho Customer) theo giả định tại [`04-API.md`](./04-API.md#4-module-auth). Giả định này cần được xác nhận chính thức trước khi thực hiện migration.
 
 ## 6. Bảng: events
 
@@ -223,7 +223,7 @@ CREATE TABLE ticket_types (
 CREATE INDEX idx_ticket_types_event_id ON ticket_types(event_id);
 ```
 
-> Lưu ý: `quantity_remaining` được thao tác qua **pessimistic lock** (`SELECT ... FOR UPDATE`), **không** dựa vào cột `version` (optimistic lock) như các bảng khác — vì luồng Reserve có tần suất tranh chấp (contention) cao, pessimistic lock phù hợp hơn để tránh retry storm. Xem [`01-ARCHITECTURE.md`](./01-ARCHITECTURE.md#8-concurrency-control--chống-oversell).
+**Ghi chú:** `quantity_remaining` được thao tác qua pessimistic lock (`SELECT ... FOR UPDATE`), không dựa vào cột `version` (optimistic lock) như các bảng khác — vì luồng Reserve có tần suất tranh chấp (contention) cao, pessimistic lock phù hợp hơn để tránh retry storm. Xem [`01-ARCHITECTURE.md`](./01-ARCHITECTURE.md#8-concurrency-control--chống-oversell).
 
 ## 8. Bảng: tickets
 
@@ -266,7 +266,7 @@ CREATE UNIQUE INDEX idx_tickets_idempotency_key ON tickets(customer_id, idempote
     WHERE idempotency_key IS NOT NULL;
 ```
 
-**Về QR code**: chỉ lưu `qr_code` dạng chuỗi UUID unique trong `tickets` — **không lưu ảnh QR**. Ảnh được sinh **on-the-fly** bằng ZXing tại thời điểm cần hiển thị (Customer xem vé qua `GET /tickets/{id}/qr`) hoặc khi quét (Checkin Staff dùng `html5-qrcode` để đọc chuỗi, gửi lên backend qua `POST /checkin`).
+**Về QR code:** bảng chỉ lưu `qr_code` dạng chuỗi UUID unique — không lưu ảnh QR. Ảnh được sinh on-the-fly bằng ZXing tại thời điểm cần hiển thị (Customer xem vé qua `GET /tickets/{id}/qr`) hoặc khi quét (Checkin Staff dùng `html5-qrcode` để đọc chuỗi, gửi lên backend qua `POST /checkin`).
 
 ## 9. Bảng: gates
 
@@ -292,7 +292,7 @@ CREATE INDEX idx_gates_event_id ON gates(event_id);
 
 ## 10. Bảng: checkin_logs
 
-Ghi lại **mọi lần quét**, kể cả lần thất bại (quét lại lần 2, vé không hợp lệ) — phục vụ tính năng cảnh báo và lịch sử check-in.
+Ghi lại mọi lần quét, kể cả lần thất bại (quét lại lần 2, vé không hợp lệ) — phục vụ tính năng cảnh báo và lịch sử check-in.
 
 | Cột | Kiểu | Ràng buộc | Ghi chú |
 |---|---|---|---|
@@ -323,12 +323,12 @@ CREATE INDEX idx_checkin_logs_ticket_id ON checkin_logs(ticket_id);
 | Bảng | Cơ chế | Lý do |
 |---|---|---|
 | `ticket_types.quantity_remaining` | **Pessimistic lock** (`SELECT ... FOR UPDATE`) | Tranh chấp cao (nhiều Customer cùng đặt 1 loại vé cùng lúc), cần đảm bảo tuyệt đối không oversell |
-| `tickets.status` (check-in) | **Conditional update** (`UPDATE ... WHERE status = 'CONFIRMED'`, dựa affected rows) | Không cần giữ lock lâu, chỉ cần tính nguyên tử của 1 câu UPDATE |
-| `events`, `users`, `gates`, và các bảng còn lại | **Optimistic lock** (cột `version`) | Tranh chấp thấp, tránh lost update khi 2 request sửa đồng thời (VD: Organizer sửa event trên 2 tab) |
+| `tickets.status` (check-in) | **Conditional update** (`UPDATE ... WHERE status = 'CONFIRMED'`, dựa vào affected rows) | Không cần giữ lock lâu, chỉ cần tính nguyên tử của một câu UPDATE |
+| `events`, `users`, `gates`, và các bảng còn lại | **Optimistic lock** (cột `version`) | Tranh chấp thấp, tránh lost update khi 2 request sửa đồng thời (ví dụ: Organizer sửa event trên 2 tab) |
 
 ## 12. Soft Delete
 
-Áp dụng cho `events` và `ticket_types` (cột `deleted_at`) — **giữ lại lịch sử** vì đã có `tickets` liên kết tới các bản ghi này, không thể xoá cứng (hard delete) mà không phá vỡ dữ liệu vé đã bán.
+Áp dụng cho `events` và `ticket_types` (cột `deleted_at`) nhằm giữ lại lịch sử, do đã có `tickets` liên kết tới các bản ghi này, không thể xoá cứng (hard delete) mà không phá vỡ dữ liệu vé đã bán.
 
 ```java
 @Where(clause = "deleted_at IS NULL")   // Hibernate filter mặc định loại bản ghi đã xoá mềm
@@ -351,25 +351,25 @@ V3__seed_demo_data.sql       -- seed dữ liệu demo (mục 14)
 V4__add_xxx.sql              -- các thay đổi schema sau này, luôn tăng version, không sửa lại file cũ
 ```
 
-**Quy tắc bắt buộc:** không bao giờ sửa lại một file migration đã chạy trên môi trường bất kỳ (kể cả local) — luôn tạo file mới với version tăng dần.
+**Quy tắc bắt buộc:** không sửa lại một file migration đã chạy trên bất kỳ môi trường nào (kể cả local) — luôn tạo file mới với version tăng dần.
 
 ## 14. Seed Data
 
-`V3__seed_demo_data.sql` tạo sẵn dữ liệu demo đủ cho từng role để test nhanh:
+File `V3__seed_demo_data.sql` tạo sẵn dữ liệu demo đủ cho từng role để kiểm thử nhanh:
 
 ```sql
 -- 1 ADMIN, 1 ORGANIZER, 1 CHECKIN_STAFF, 1 CUSTOMER
 -- 1 Event mẫu ("Demo Tech Conference") với 2 TicketType ("Vé thường" x100, "Vé VIP" x20)
 -- 1 Gate mẫu ("Cổng A")
--- Mật khẩu demo: xem README.md, KHÔNG hardcode plaintext trong file migration — dùng hash BCrypt có sẵn
+-- Mật khẩu demo: xem README.md, không hardcode plaintext trong file migration — dùng hash BCrypt có sẵn
 ```
 
-## 15. Post-MVP: staff_gate_assignments
+## 15. Định hướng mở rộng: staff_gate_assignments
 
-Bảng `staff_gate_assignments` (many-to-many `users` ↔ `gates`, cho phép 1 Checkin Staff được gán nhiều cổng cụ thể trong cùng 1 event) được **để ở giai đoạn mở rộng sau MVP**. Ở MVP, việc gán Checkin Staff dừng lại ở mức **event** (cột `users.assigned_event_id`, xem mục 5), không phân quyền theo từng cổng cụ thể.
+Bảng `staff_gate_assignments` (quan hệ many-to-many giữa `users` và `gates`, cho phép một Checkin Staff được gán nhiều cổng cụ thể trong cùng một event) được để ở giai đoạn mở rộng sau MVP. Ở MVP, việc gán Checkin Staff dừng lại ở mức event (cột `users.assigned_event_id`, xem mục 5), không phân quyền theo từng cổng cụ thể.
 
 ```sql
--- Thiết kế tham khảo cho giai đoạn mở rộng (CHƯA migrate ở MVP):
+-- Thiết kế tham khảo cho giai đoạn mở rộng (chưa migrate ở MVP):
 -- CREATE TABLE staff_gate_assignments (
 --     id       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 --     staff_id BIGINT NOT NULL REFERENCES users(id),

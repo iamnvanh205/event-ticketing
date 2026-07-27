@@ -1,4 +1,4 @@
-# 07 - BUSINESS RULES
+# 07 - Quy Tắc Nghiệp Vụ
 
 ## Mục lục
 
@@ -13,7 +13,7 @@
 9. [Sửa quantity_total](#9-sửa-quantity_total)
 10. [Cảnh báo quét lại vé](#10-cảnh-báo-quét-lại-vé)
 11. [RBAC + Ownership](#11-rbac--ownership)
-12. [Edge Cases tổng hợp](#12-edge-cases-tổng-hợp)
+12. [Trường hợp biên (Edge Cases)](#12-trường-hợp-biên-edge-cases)
 13. [State Machine của Ticket](#13-state-machine-của-ticket)
 
 ---
@@ -22,7 +22,7 @@
 
 **Quy tắc:** Không được đặt vé vượt quá `quantity_remaining` của một `TicketType`, kể cả khi nhiều request đến đồng thời.
 
-**Cơ chế:** Transaction + `SELECT ticket_type FOR UPDATE`. Cho phép đặt **nhiều vé cùng loại trong 1 request** (`quantity` > 1), miễn là còn đủ chỗ tại thời điểm lock.
+**Cơ chế:** Transaction kết hợp `SELECT ticket_type FOR UPDATE`. Hệ thống cho phép đặt nhiều vé cùng loại trong một request (`quantity` > 1), miễn là còn đủ chỗ tại thời điểm lock.
 
 ```java
 @Transactional
@@ -39,37 +39,37 @@ public Ticket reserve(Long ticketTypeId, int quantity, Long customerId) {
 }
 ```
 
-Chi tiết cơ chế lock đầy đủ: xem [`01-ARCHITECTURE.md`](./01-ARCHITECTURE.md#8-concurrency-control--chống-oversell).
+Chi tiết cơ chế lock đầy đủ được mô tả tại [`01-ARCHITECTURE.md`](./01-ARCHITECTURE.md#8-concurrency-control--chống-oversell).
 
 ## 2. Luồng Reserve → Confirm
 
 ```
 RESERVE                          CONFIRM                        (nếu không confirm kịp)
-┌─────────────────┐   customer   ┌─────────────────┐            ┌─────────────────┐
-│ Trừ chỗ ngay     │──bấm xác────▶│ status=CONFIRMED│            │ status=EXPIRED   │
-│ status=RESERVED  │   nhận        │ sinh qr_code    │            │ trả chỗ lại      │
+┌──────────────────┐   customer   ┌─────────────────┐            ┌─────────────────┐
+│ Trừ chỗ ngay     │──bấm xác────▶│ status=CONFIRMED│            │ status=EXPIRED  │
+│ status=RESERVED  │   nhận       │ sinh qr_code    │            │ trả chỗ lại     │
 │ expires_at=+5-10p│              └─────────────────┘            └─────────────────┘
 └────────┬─────────┘
          │ hết hạn (5-10 phút) mà chưa confirm
          └─────────────────────────────────────────────────────▶ tự động EXPIRED
 ```
 
-- **Reserve**: trừ chỗ ngay lập tức (không chờ confirm), tạo `Ticket` trạng thái `RESERVED`, `expires_at` = thời điểm reserve + **5–10 phút** (khuyến nghị mặc định **7 phút**, cấu hình qua `application.yml`).
-- Customer chủ động bấm **"Xác nhận"** trong thời hạn → chuyển `CONFIRMED`, sinh `qr_code` (UUID).
-- **Không xác nhận kịp** → vé tự động coi là `EXPIRED` (qua lazy check hoặc scheduled job — xem mục 3), chỗ được trả lại `quantity_remaining`.
+- **Reserve**: trừ chỗ ngay lập tức (không chờ confirm), tạo `Ticket` trạng thái `RESERVED`, `expires_at` = thời điểm reserve + 5–10 phút (mặc định khuyến nghị **7 phút**, cấu hình qua `application.yml`).
+- Customer chủ động bấm "Xác nhận" trong thời hạn → chuyển trạng thái `CONFIRMED`, sinh `qr_code` (UUID).
+- Không xác nhận kịp → vé tự động coi là `EXPIRED` (qua lazy check hoặc scheduled job — xem mục 3), chỗ được trả lại `quantity_remaining`.
 
 ## 3. Giải phóng chỗ hết hạn
 
-Thực hiện **trong transaction có lock tương tự luồng Reserve** (`SELECT ticket_type FOR UPDATE`), tránh lệch số liệu giữa `quantity_remaining` và số vé thực tế đang `RESERVED`/`EXPIRED`.
+Thao tác này thực hiện trong transaction có lock tương tự luồng Reserve (`SELECT ticket_type FOR UPDATE`), tránh lệch số liệu giữa `quantity_remaining` và số vé thực tế đang `RESERVED`/`EXPIRED`.
 
-2 cơ chế song song (chi tiết kỹ thuật: [`01-ARCHITECTURE.md`](./01-ARCHITECTURE.md#7-cơ-chế-hết-hạn-giữ-chỗ-reservation-expiry)):
+Hai cơ chế song song (chi tiết kỹ thuật: [`01-ARCHITECTURE.md`](./01-ARCHITECTURE.md#7-cơ-chế-hết-hạn-giữ-chỗ-reservation-expiry)):
 
 1. **Lazy check**: mỗi khi có request chạm tới ticket `RESERVED` đã hết hạn, giải phóng ngay trong transaction hiện tại.
-2. **Scheduled job** (`@Scheduled`): quét định kỳ (mỗi 60 giây) dọn các `RESERVED` hết hạn còn sót lại — đảm bảo dữ liệu sạch và số liệu dashboard đúng dù không có request nào chạm tới.
+2. **Scheduled job** (`@Scheduled`): quét định kỳ (mỗi 60 giây) dọn các `RESERVED` hết hạn còn sót lại, đảm bảo dữ liệu sạch và số liệu dashboard đúng dù không có request nào chạm tới.
 
 ## 4. Huỷ chủ động
 
-Customer có thể chủ động huỷ vé **khi đang ở trạng thái `RESERVED`** (chưa `CONFIRMED`), qua `POST /tickets/{id}/cancel`. Chỗ được **trả lại ngay lập tức** cho `quantity_remaining` (cùng cơ chế lock như mục 1).
+Customer có thể chủ động huỷ vé khi đang ở trạng thái `RESERVED` (chưa `CONFIRMED`), qua `POST /tickets/{id}/cancel`. Chỗ được trả lại ngay lập tức cho `quantity_remaining` (cùng cơ chế lock như mục 1).
 
 ```java
 @Transactional
@@ -89,16 +89,16 @@ public void cancel(Long ticketId, Long customerId) {
 }
 ```
 
-> Huỷ vé đã `CONFIRMED` (refund) **không thuộc phạm vi MVP** — xem [`00-OVERVIEW.md`](./00-OVERVIEW.md#8-ngoài-phạm-vi-mvp-post-mvp).
+**Known Limitations:** huỷ vé đã ở trạng thái `CONFIRMED` (refund) không thuộc phạm vi MVP — xem [`00-OVERVIEW.md`](./00-OVERVIEW.md#8-ngoài-phạm-vi-mvp-post-mvp).
 
 ## 5. Idempotency
 
-Áp dụng cho **toàn bộ 3 luồng quan trọng nhất**: Reserve, Confirm, Check-in — chống double-submit khi client bấm 2 lần do mạng chậm/timeout.
+Áp dụng cho ba luồng quan trọng nhất: Reserve, Confirm, Check-in, nhằm chống double-submit khi client bấm hai lần do mạng chậm/timeout.
 
 | Luồng | Cơ chế idempotency |
 |---|---|
 | **Reserve** | Client gửi header `Idempotency-Key: <uuid>` (sinh mới mỗi lần thao tác, giữ nguyên khi retry). Backend lưu unique index `(customer_id, idempotency_key)` trên `tickets` — nếu key đã tồn tại, trả lại kết quả của request đầu tiên thay vì tạo mới |
-| **Confirm** | Tự nhiên idempotent theo `ticket_id` + trạng thái hiện tại: gọi lại `confirm` khi đã `CONFIRMED` → trả về cùng kết quả (không lỗi, không sinh QR mới) |
+| **Confirm** | Tự nhiên idempotent theo `ticket_id` và trạng thái hiện tại: gọi lại `confirm` khi đã `CONFIRMED` → trả về cùng kết quả (không lỗi, không sinh QR mới) |
 | **Check-in** | Tự nhiên idempotent nhờ conditional update (`WHERE status = 'CONFIRMED'`) — gọi lại khi đã `CHECKED_IN` sẽ nhận `TICKET_ALREADY_CHECKED_IN`, không có tác dụng phụ ngoài ý muốn |
 
 ```java
@@ -114,7 +114,7 @@ public TicketResponse reserve(ReserveRequest request, Long customerId, String id
 
 ## 6. Check-in Window
 
-Vé chỉ được check-in trong khung giờ: **từ `event.start_time − 1 giờ` đến hết `event.end_time`**.
+Vé chỉ được check-in trong khung giờ: từ `event.start_time − 1 giờ` đến hết `event.end_time`.
 
 ```java
 Instant checkinWindowStart = event.getStartTime().minus(1, ChronoUnit.HOURS);
@@ -125,7 +125,7 @@ if (Instant.now().isBefore(checkinWindowStart) || Instant.now().isAfter(event.ge
 
 ## 7. Giới hạn mua vé
 
-**Tối đa 100 vé/người/loại vé/event** — kiểm tra tổng số vé (`RESERVED` + `CONFIRMED`, không tính `CANCELLED`/`EXPIRED`) mà customer đã có trên cùng `ticket_type_id`.
+Tối đa 100 vé/người/loại vé/event — kiểm tra tổng số vé (`RESERVED` + `CONFIRMED`, không tính `CANCELLED`/`EXPIRED`) mà customer đã có trên cùng `ticket_type_id`.
 
 ```java
 int alreadyOwned = ticketRepository.countActiveByCustomerAndTicketType(customerId, ticketTypeId);
@@ -136,7 +136,7 @@ if (alreadyOwned + request.getQuantity() > MAX_TICKETS_PER_CUSTOMER_PER_TYPE) { 
 
 ## 8. Giá vé cố định
 
-`price` của `TicketType` **cố định tại thời điểm tạo**, **không cho sửa sau khi đã bắt đầu bán** (`sales_start_at` đã qua).
+`price` của `TicketType` cố định tại thời điểm tạo, không cho sửa sau khi đã bắt đầu bán (`sales_start_at` đã qua).
 
 ```java
 @Transactional
@@ -153,8 +153,8 @@ public TicketTypeResponse update(Long id, TicketTypeRequest request) {
 
 ## 9. Sửa quantity_total
 
-- **Không cho giảm** `quantity_total` xuống thấp hơn số đã bán/đã giữ chỗ (`quantity_total - quantity_remaining`) — chặn ở tầng Service, báo lỗi rõ ràng.
-- **Cho tăng thoải mái** (tăng `quantity_total` đồng thời tăng `quantity_remaining` tương ứng).
+- Không cho giảm `quantity_total` xuống thấp hơn số đã bán/đã giữ chỗ (`quantity_total - quantity_remaining`) — chặn ở tầng Service, báo lỗi rõ ràng.
+- Cho phép tăng thoải mái (tăng `quantity_total` đồng thời tăng `quantity_remaining` tương ứng).
 
 ```java
 int sold = tt.getQuantityTotal() - tt.getQuantityRemaining(); // số đã bán/giữ chỗ
@@ -168,7 +168,7 @@ tt.setQuantityRemaining(tt.getQuantityRemaining() + delta); // delta có thể �
 
 ## 10. Cảnh báo quét lại vé
 
-Khi 1 vé bị quét lần 2 trở đi (`status` đã là `CHECKED_IN`): **từ chối** (trả lỗi `TICKET_ALREADY_CHECKED_IN`) **+ ghi log riêng** vào `checkin_logs` với `result = DUPLICATE` (không chỉ ghi log lần thành công, phải ghi cả lần thất bại để phục vụ tính năng cảnh báo/lịch sử).
+Khi một vé bị quét lần 2 trở đi (`status` đã là `CHECKED_IN`): hệ thống từ chối (trả lỗi `TICKET_ALREADY_CHECKED_IN`) và ghi log riêng vào `checkin_logs` với `result = DUPLICATE` (không chỉ ghi log lần thành công, phải ghi cả lần thất bại để phục vụ tính năng cảnh báo/lịch sử).
 
 ```java
 int updated = ticketRepository.checkInIfConfirmed(ticketId);
@@ -180,16 +180,16 @@ if (updated == 0) {
 }
 ```
 
-Frontend hiển thị cảnh báo rõ ràng (VD: nền đỏ + âm thanh) khi nhận `TICKET_ALREADY_CHECKED_IN` để nhân viên tại cổng nhận biết ngay dấu hiệu vé giả/chia sẻ QR.
+Frontend hiển thị cảnh báo rõ ràng (ví dụ: nền đỏ kèm âm thanh) khi nhận `TICKET_ALREADY_CHECKED_IN` để nhân viên tại cổng nhận biết ngay dấu hiệu vé giả/chia sẻ QR.
 
 ## 11. RBAC + Ownership
 
-Kết hợp **role cố định** (4 role) + **kiểm tra ownership ở Service** — chi tiết đầy đủ tại [`06-AUTHENTICATION.md`](./06-AUTHENTICATION.md#6-ownership-check):
+Hệ thống kết hợp role cố định (4 role) với kiểm tra ownership ở tầng Service — chi tiết đầy đủ tại [`06-AUTHENTICATION.md`](./06-AUTHENTICATION.md#6-ownership-check):
 
 - Organizer chỉ thao tác trên event của chính mình.
 - Checkin Staff chỉ check-in vé thuộc event được gán.
 
-## 12. Edge Cases tổng hợp
+## 12. Trường hợp biên (Edge Cases)
 
 | Tình huống | Xử lý |
 |---|---|
@@ -223,5 +223,5 @@ Kết hợp **role cố định** (4 role) + **kiểm tra ownership ở Service*
 - `RESERVED → CONFIRMED`: qua `confirm()`, còn hạn.
 - `RESERVED → EXPIRED`: tự động, hết hạn giữ chỗ.
 - `RESERVED → CANCELLED`: qua `cancel()`, chủ động.
-- `CONFIRMED → CHECKED_IN`: qua `checkin()`, đúng 1 lần (conditional update).
-- Không có transition nào đi ngược lại — mọi trạng thái cuối (`EXPIRED`, `CANCELLED`, `CHECKED_IN`) đều là **immutable** sau khi đạt tới.
+- `CONFIRMED → CHECKED_IN`: qua `checkin()`, đúng một lần (conditional update).
+- Không có transition nào đi ngược lại — mọi trạng thái cuối (`EXPIRED`, `CANCELLED`, `CHECKED_IN`) đều bất biến (immutable) sau khi đạt tới.

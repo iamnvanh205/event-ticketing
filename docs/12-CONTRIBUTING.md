@@ -1,12 +1,12 @@
-# 12 - CONTRIBUTING
+# 12 - Quy Trình Đóng Góp
 
 ## Mục lục
 
 1. [Git Flow](#1-git-flow)
-2. [Branch Naming](#2-branch-naming)
-3. [Commit Convention](#3-commit-convention)
+2. [Quy ước đặt tên Branch](#2-quy-ước-đặt-tên-branch)
+3. [Quy ước Commit](#3-quy-ước-commit)
 4. [Pull Request](#4-pull-request)
-5. [Review Rules](#5-review-rules)
+5. [Quy tắc Review](#5-quy-tắc-review)
 6. [Release & Versioning](#6-release--versioning)
 7. [Checklist trước khi mở PR](#7-checklist-trước-khi-mở-pr)
 
@@ -14,7 +14,7 @@
 
 ## 1. Git Flow
 
-Dùng **GitHub Flow đơn giản** — phù hợp dự án cá nhân, không dùng Git Flow đầy đủ (không có nhánh `develop`/`release` riêng):
+Dự án áp dụng GitHub Flow đơn giản — phù hợp dự án cá nhân, không dùng Git Flow đầy đủ (không có nhánh `develop`/`release` riêng):
 
 ```
 main ──●──●──●──────────●──●──▶  (luôn deployable, deploy liên tục)
@@ -23,10 +23,10 @@ main ──●──●──●──────────●──●──
 ```
 
 - `main` là nhánh duy nhất luôn ở trạng thái deploy được (CD tự động deploy khi merge — xem [`11-DEPLOYMENT.md`](./11-DEPLOYMENT.md#7-cicd--github-actions)).
-- Mọi thay đổi đi qua **feature branch** → **Pull Request** → merge vào `main`.
-- Không làm việc trực tiếp trên `main`.
+- Mọi thay đổi đi qua feature branch → Pull Request → merge vào `main`.
+- Không thực hiện thay đổi trực tiếp trên `main`.
 
-## 2. Branch Naming
+## 2. Quy ước đặt tên Branch
 
 | Loại | Format | Ví dụ |
 |---|---|---|
@@ -35,11 +35,11 @@ main ──●──●──●──────────●──●──
 | Công việc phụ trợ (không đổi logic) | `chore/<mô-tả-ngắn-gọn>` | `chore/upgrade-spring-boot` |
 | Tài liệu | `docs/<mô-tả-ngắn-gọn>` | `docs/update-api-spec` |
 
-- Mô tả ngắn gọn bằng **tiếng Anh**, `kebab-case`, đủ rõ để hiểu nội dung nhánh mà không cần mở PR.
+Mô tả ngắn gọn bằng tiếng Anh, `kebab-case`, đủ rõ để hiểu nội dung nhánh mà không cần mở PR.
 
-## 3. Commit Convention
+## 3. Quy ước Commit
 
-Dùng **Conventional Commits**:
+Dự án áp dụng Conventional Commits:
 
 ```
 <type>: <mô tả ngắn gọn, thì hiện tại, không viết hoa chữ đầu, không dấu chấm cuối>
@@ -65,9 +65,9 @@ git commit -m "docs: update API spec for checkin endpoint"
 
 ## 4. Pull Request
 
-Mọi thay đổi — kể cả khi làm việc một mình — vẫn tạo **Pull Request** và **tự review trước khi merge** vào `main`, không merge trực tiếp không qua PR.
+Mọi thay đổi — kể cả khi làm việc một mình — vẫn tạo Pull Request và tự review trước khi merge vào `main`, không merge trực tiếp không qua PR.
 
-### PR Template (`.github/pull_request_template.md`)
+### Mẫu PR Template (`.github/pull_request_template.md`)
 
 ```markdown
 ## Mô tả
@@ -92,19 +92,19 @@ Mọi thay đổi — kể cả khi làm việc một mình — vẫn tạo **Pu
 <!-- Rủi ro, đánh đổi, hoặc điều cần lưu ý khi review -->
 ```
 
-## 5. Review Rules
+## 5. Quy tắc Review
 
-- Vì làm việc cá nhân, "review" nghĩa là **tự đọc lại toàn bộ diff trước khi merge**, kiểm tra đúng các mục trong checklist PR template ở mục 4.
+- Do làm việc cá nhân, "review" nghĩa là tự đọc lại toàn bộ diff trước khi merge, kiểm tra đúng các mục trong checklist PR template ở mục 4.
 - Với thay đổi liên quan trực tiếp tới concurrency (luồng Reserve, Confirm, Check-in): bắt buộc tự kiểm tra lại đã tuân thủ đúng cơ chế lock tại [`01-ARCHITECTURE.md`](./01-ARCHITECTURE.md#8-concurrency-control--chống-oversell) trước khi merge, không bỏ qua bước này dù là thay đổi nhỏ.
 - Không merge PR khi CI (GitHub Actions) đang fail.
 
 ## 6. Release & Versioning
 
-Dùng **Semantic Versioning** (`vMAJOR.MINOR.PATCH`, VD: `v1.0.0`):
+Dự án sử dụng Semantic Versioning (`vMAJOR.MINOR.PATCH`, ví dụ: `v1.0.0`):
 
 | Thành phần | Tăng khi |
 |---|---|
-| `MAJOR` | Có breaking change (VD: đổi cấu trúc response API, đổi schema không tương thích ngược) |
+| `MAJOR` | Có breaking change (ví dụ: đổi cấu trúc response API, đổi schema không tương thích ngược) |
 | `MINOR` | Thêm tính năng mới, tương thích ngược |
 | `PATCH` | Sửa lỗi, không đổi hành vi API |
 
@@ -113,11 +113,11 @@ git tag -a v1.0.0 -m "MVP release: reserve/confirm, checkin, real-time dashboard
 git push origin v1.0.0
 ```
 
-Vì deploy liên tục từ `main` (CD tự động — xem [`11-DEPLOYMENT.md`](./11-DEPLOYMENT.md)), tag version dùng để **đánh dấu mốc quan trọng** (VD: hoàn thành MVP), không nhất thiết gắn với từng lần deploy.
+Do deploy liên tục từ `main` (CD tự động — xem [`11-DEPLOYMENT.md`](./11-DEPLOYMENT.md)), tag version dùng để đánh dấu mốc quan trọng (ví dụ: hoàn thành MVP), không nhất thiết gắn với từng lần deploy.
 
 ## 7. Checklist trước khi mở PR
 
-- [ ] Code tuân thủ naming convention tại [`03-CODING-STANDARDS.md`](./03-CODING-STANDARDS.md)
+- [ ] Code tuân thủ quy ước đặt tên tại [`03-CODING-STANDARDS.md`](./03-CODING-STANDARDS.md)
 - [ ] Không đặt business logic trong Controller
 - [ ] Mọi `BusinessException` mới có `errorCode` tương ứng đã khai báo tại [`09-ERROR-CODES.md`](./09-ERROR-CODES.md)
 - [ ] Không truy cập trực tiếp Repository của module khác — xem ranh giới module tại [`01-ARCHITECTURE.md`](./01-ARCHITECTURE.md#4-ranh-giới-module-module-boundaries)

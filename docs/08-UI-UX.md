@@ -1,13 +1,13 @@
-# 08 - UI/UX
+# 08 - Thiết Kế Giao Diện & Trải Nghiệm Người Dùng
 
 ## Mục lục
 
-1. [Design System tổng quan](#1-design-system-tổng-quan)
+1. [Tổng quan hệ thống thiết kế](#1-tổng-quan-hệ-thống-thiết-kế)
 2. [Color Palette](#2-color-palette)
 3. [Typography](#3-typography)
 4. [Spacing](#4-spacing)
 5. [Component Library](#5-component-library)
-6. [Responsive Strategy](#6-responsive-strategy)
+6. [Chiến lược Responsive](#6-chiến-lược-responsive)
 7. [Dark Mode](#7-dark-mode)
 8. [Accessibility (WCAG A)](#8-accessibility-wcag-a)
 9. [Animation](#9-animation)
@@ -15,15 +15,15 @@
 
 ---
 
-## 1. Design System tổng quan
+## 1. Tổng quan hệ thống thiết kế
 
 - **Nền tảng:** Tailwind CSS + shadcn/ui
-- **Phong cách:** Minimal / Clean, hướng dashboard hiện đại, gọn gàng, nhiều khoảng trắng, ít trang trí thừa
-- **Triết lý:** ưu tiên rõ ràng và tốc độ thao tác hơn là hiệu ứng thị giác — phù hợp với 2 nhóm người dùng chính cần thao tác nhanh: Checkin Staff (quét liên tục tại cổng) và Organizer (đọc số liệu dashboard nhanh)
+- **Phong cách:** Minimal / Clean, hướng dashboard hiện đại, gọn gàng, nhiều khoảng trắng, hạn chế trang trí thừa
+- **Triết lý:** ưu tiên rõ ràng và tốc độ thao tác hơn hiệu ứng thị giác — phù hợp với hai nhóm người dùng chính cần thao tác nhanh: Checkin Staff (quét liên tục tại cổng) và Organizer (đọc số liệu dashboard nhanh)
 
 ## 2. Color Palette
 
-Đề xuất bảng màu (dùng biến CSS Tailwind, dễ áp dụng dark mode sau này dù MVP chưa cần):
+Bảng màu đề xuất (dùng biến CSS Tailwind, dễ áp dụng dark mode sau này dù MVP chưa cần):
 
 | Token | Hex | Dùng cho |
 |---|---|---|
@@ -51,20 +51,20 @@
 }
 ```
 
-> Bảng màu trên là đề xuất thiết kế (theo yêu cầu tự đề xuất tại chủ đề 10), không phải giá trị đã chốt tuyệt đối — có thể điều chỉnh sắc độ khi lên giao diện thật, miễn giữ đúng vai trò từng token.
+**Ghi chú:** bảng màu trên là đề xuất thiết kế, không phải giá trị đã chốt tuyệt đối — có thể điều chỉnh sắc độ khi triển khai giao diện thật, miễn giữ đúng vai trò từng token.
 
 ## 3. Typography
 
 | Cấp | Font | Size | Weight | Dùng cho |
 |---|---|---|---|---|
-| Display | Inter | 32px / 2rem | 700 (Bold) | Tiêu đề trang lớn (VD: tên event trên trang chi tiết) |
+| Display | Inter | 32px / 2rem | 700 (Bold) | Tiêu đề trang lớn (ví dụ: tên event trên trang chi tiết) |
 | H1 | Inter | 24px / 1.5rem | 600 (Semibold) | Tiêu đề section |
 | H2 | Inter | 20px / 1.25rem | 600 | Tiêu đề card/dialog |
 | Body | Inter | 14px / 0.875rem | 400 (Regular) | Nội dung chính |
 | Small | Inter | 12px / 0.75rem | 400 | Chú thích, timestamp, label phụ |
-| Số liệu dashboard | Inter | 36px / 2.25rem | 700 | Số liệu real-time nổi bật (VD: "320 đã check-in") |
+| Số liệu dashboard | Inter | 36px / 2.25rem | 700 | Số liệu real-time nổi bật (ví dụ: "320 đã check-in") |
 
-Font chính: **Inter** (Google Fonts), fallback hệ thống `system-ui, sans-serif`. Chọn Inter vì độ rõ ràng cao ở kích thước nhỏ — phù hợp Checkin Staff thao tác trên màn hình điện thoại ngoài trời.
+Font chính: **Inter** (Google Fonts), fallback hệ thống `system-ui, sans-serif`. Font Inter được lựa chọn vì độ rõ ràng cao ở kích thước nhỏ, phù hợp với thao tác của Checkin Staff trên màn hình điện thoại ngoài trời.
 
 ## 4. Spacing
 
@@ -76,7 +76,7 @@ Theo thang spacing mặc định của Tailwind (bội số 4px): `4px, 8px, 12p
 
 ## 5. Component Library
 
-Dùng **shadcn/ui** làm nền, các component chính cần dùng trong dự án:
+Sử dụng **shadcn/ui** làm nền tảng, các component chính cần dùng trong dự án:
 
 | Component | Dùng ở |
 |---|---|
@@ -103,26 +103,26 @@ function TicketStatusBadge({ status }: { status: TicketStatus }) {
 }
 ```
 
-## 6. Responsive Strategy
+## 6. Chiến lược Responsive
 
 | Trang | Chiến lược | Lý do |
 |---|---|---|
-| **Trang Check-in** (Checkin Staff quét QR) | **Mobile-first, bắt buộc** | Nhân viên luôn dùng điện thoại tại cổng, không có desktop |
-| **Dashboard Organizer** | **Desktop-first** | Organizer theo dõi số liệu trên máy tính, cần hiển thị nhiều dữ liệu cùng lúc (bảng, biểu đồ) |
-| **Trang đặt vé Customer** | **Mobile-first** | Phần lớn khách hàng đặt vé qua điện thoại |
+| **Trang Check-in** (Checkin Staff quét QR) | Mobile-first, bắt buộc | Nhân viên luôn dùng điện thoại tại cổng, không có desktop |
+| **Dashboard Organizer** | Desktop-first | Organizer theo dõi số liệu trên máy tính, cần hiển thị nhiều dữ liệu cùng lúc (bảng, biểu đồ) |
+| **Trang đặt vé Customer** | Mobile-first | Phần lớn khách hàng đặt vé qua điện thoại |
 
-Breakpoint Tailwind chuẩn: `sm: 640px`, `md: 768px`, `lg: 1024px`, `xl: 1280px`. Với trang Dashboard (desktop-first), layout mobile vẫn phải dùng được (không được vỡ hoàn toàn) nhưng không cần tối ưu chi tiết như 2 trang còn lại.
+Breakpoint Tailwind chuẩn: `sm: 640px`, `md: 768px`, `lg: 1024px`, `xl: 1280px`. Với trang Dashboard (desktop-first), layout mobile vẫn phải sử dụng được (không được vỡ hoàn toàn) nhưng không cần tối ưu chi tiết như hai trang còn lại.
 
 ## 7. Dark Mode
 
-**Không làm ở MVP.** Biến CSS (mục 2) được thiết kế theo dạng HSL token để nếu cần bổ sung dark mode sau này, chỉ cần định nghĩa thêm bộ giá trị cho class `.dark` mà không cần đổi cấu trúc component.
+Không triển khai ở giai đoạn MVP. Biến CSS (mục 2) được thiết kế theo dạng HSL token để nếu cần bổ sung dark mode sau này, chỉ cần định nghĩa thêm bộ giá trị cho class `.dark` mà không cần đổi cấu trúc component.
 
 ## 8. Accessibility (WCAG A)
 
-Mức cơ bản, áp dụng cho các thao tác chính (đặt vé, check-in):
+Áp dụng mức cơ bản cho các thao tác chính (đặt vé, check-in):
 
-- **Alt text**: mọi ảnh (banner event, mã QR) đều có `alt` mô tả rõ nghĩa (VD: `alt="Mã QR vé sự kiện Tech Conference 2026"`).
-- **Contrast tối thiểu**: tỷ lệ tương phản chữ/nền đạt tối thiểu **4.5:1** cho text thường (bảng màu ở mục 2 đã đảm bảo mức này).
+- **Alt text**: mọi ảnh (banner event, mã QR) đều có `alt` mô tả rõ nghĩa (ví dụ: `alt="Mã QR vé sự kiện Tech Conference 2026"`).
+- **Contrast tối thiểu**: tỷ lệ tương phản chữ/nền đạt tối thiểu 4.5:1 cho text thường (bảng màu ở mục 2 đã đảm bảo mức này).
 - **Keyboard navigable**: các thao tác chính (Reserve, Confirm, submit form đăng nhập) phải thực hiện được hoàn toàn bằng bàn phím (Tab + Enter), không phụ thuộc chuột.
 - **Label rõ ràng cho input**: mọi `<Input>` có `<Label>` liên kết đúng (`htmlFor`/`id`), không chỉ dựa vào `placeholder`.
 
@@ -131,15 +131,15 @@ Mức cơ bản, áp dụng cho các thao tác chính (đặt vé, check-in):
 <Input id="event-name" name="name" required />
 ```
 
-> Mức WCAG A là mức cơ bản đã chốt cho MVP — không yêu cầu AA/AAA (VD: không bắt buộc hỗ trợ đầy đủ screen reader cho mọi thành phần động như trang Dashboard real-time).
+**Ghi chú:** mức WCAG A là mức cơ bản đã chốt cho MVP — không yêu cầu AA/AAA (ví dụ: không bắt buộc hỗ trợ đầy đủ screen reader cho mọi thành phần động như trang Dashboard real-time).
 
 ## 9. Animation
 
 Giữ tối giản, chỉ dùng animation có mục đích rõ ràng (không trang trí thừa):
 
-- Transition mượt khi số liệu dashboard cập nhật qua WebSocket (VD: số đếm tăng dần, `duration: 300ms`, `ease-out`).
+- Transition mượt khi số liệu dashboard cập nhật qua WebSocket (ví dụ: số đếm tăng dần, `duration: 300ms`, `ease-out`).
 - Toast xuất hiện/biến mất khi có kết quả check-in.
-- Không dùng animation phức tạp (parallax, scroll-triggered...) — không phù hợp với đối tượng người dùng và mục tiêu học tập của dự án.
+- Không dùng animation phức tạp (parallax, scroll-triggered...) — không phù hợp với đối tượng người dùng và mục tiêu kỹ thuật của dự án.
 
 ## 10. Layout mẫu theo trang
 
@@ -147,30 +147,30 @@ Giữ tối giản, chỉ dùng animation có mục đích rõ ràng (không tra
 
 ```
 ┌─────────────────────────┐
-│  ← Cổng A                │  header cố định, chọn cổng
+│  ← Cổng A               │  header cố định, chọn cổng
 ├─────────────────────────┤
-│                          │
-│    [ Camera preview ]    │  vùng quét QR full-width
-│                          │
+│                         │
+│    [ Camera preview ]   │  vùng quét QR full-width
+│                         │
 ├─────────────────────────┤
-│  ✅ Check-in thành công  │  toast kết quả, màu theo trạng thái
-│  Vé #5001 · Vé VIP       │  (xanh = success, đỏ = duplicate/invalid)
+│  Check-in thành công    │  toast kết quả, màu theo trạng thái
+│  Vé #5001 · Vé VIP    │  (xanh = success, đỏ = duplicate/invalid)
 └─────────────────────────┘
 ```
 
 ### Dashboard Organizer (desktop-first)
 
 ```
-┌───────────────────────────────────────────────────────────┐
+┌─────────────────────────────────────────────────────────────┐
 │  Tech Conference 2026                    [Đã publish]       │
 ├───────────────┬───────────────┬─────────────────────────────┤
-│  Đã bán        │  Đã check-in  │  Còn lại                     │
-│  850           │  320           │  150                        │
+│  Đã bán       │  Đã check-in  │  Còn lại                    │
+│  850          │  320          │  150                        │
 ├───────────────┴───────────────┴─────────────────────────────┤
-│  Theo cổng                                                    │
-│  ┌─────────────┬─────────────┬───────────┐                   │
-│  │ Cổng A       │ 200          │ ████████░░ │                  │
-│  │ Cổng B       │ 120          │ █████░░░░░ │                  │
-│  └─────────────┴─────────────┴───────────┘                   │
-└───────────────────────────────────────────────────────────┘
+│  Theo cổng                                                  │
+│  ┌─────────────┬─────────────┬──────────────┐               │
+│  │ Cổng A      │ 200         │ ████████░░   │               │
+│  │ Cổng B      │ 120         │ █████░░░░░   │               │
+│  └─────────────┴─────────────┴──────────────┘               │
+└─────────────────────────────────────────────────────────────┘
 ```

@@ -1,4 +1,4 @@
-# 04 - API
+# 04 - Đặc Tả API
 
 ## Mục lục
 
@@ -22,8 +22,8 @@
 
 - Base URL: `https://api.event-ticketing.dev/api/v1` (production), `http://localhost:8080/api/v1` (local)
 - Content-Type: `application/json` (trừ upload file: `multipart/form-data`)
-- Auth: header `Authorization: Bearer <access_token>` cho mọi endpoint trừ đăng nhập/đăng ký/refresh
-- Response thành công: trả thẳng `data`, không bọc envelope (xem [`03-CODING-STANDARDS.md`](./03-CODING-STANDARDS.md#4-response-format))
+- Xác thực: header `Authorization: Bearer <access_token>` cho mọi endpoint trừ đăng nhập/đăng ký/refresh
+- Response thành công: trả thẳng `data`, không bọc envelope (xem [`03-CODING-STANDARDS.md`](./03-CODING-STANDARDS.md#4-định-dạng-response))
 - Response lỗi: RFC 7807 Problem Details (xem [`09-ERROR-CODES.md`](./09-ERROR-CODES.md))
 - Timestamp: ISO-8601 UTC (`2026-09-01T09:00:00Z`)
 
@@ -33,7 +33,7 @@ Version nằm trong URL: `/api/v1/...`. Khi có breaking change, tạo `/api/v2/
 
 ## 3. Pagination, Sorting, Filtering
 
-Dùng **Spring Data `Pageable`** mặc định cho mọi endpoint danh sách:
+Sử dụng **Spring Data `Pageable`** mặc định cho mọi endpoint danh sách:
 
 ```
 GET /api/v1/events?page=0&size=20&sort=startTime,desc
@@ -57,7 +57,7 @@ Response danh sách:
 }
 ```
 
-Filtering: dùng query param riêng theo từng field hỗ trợ, khai báo tại từng endpoint bên dưới (VD: `status`, `organizerId`).
+Filtering: sử dụng query param riêng theo từng field hỗ trợ, khai báo tại từng endpoint tương ứng bên dưới (ví dụ: `status`, `organizerId`).
 
 ---
 
@@ -73,7 +73,7 @@ Filtering: dùng query param riêng theo từng field hỗ trợ, khai báo tạ
 | `POST` | `/auth/logout` | Authenticated | Vô hiệu hoá refresh token hiện tại |
 | `GET` | `/auth/me` | Authenticated | Lấy thông tin user hiện tại |
 
-> TODO: Need confirmation — phương thức đăng nhập cho `ORGANIZER`/`ADMIN`/`CHECKIN_STAFF` được giả định là **email/password** (không qua Google OAuth2, vốn chỉ dành cho `CUSTOMER`). Cần xác nhận lại trước khi code — nếu đúng, `/auth/register` public chỉ áp dụng cho `CUSTOMER`; tài khoản `ORGANIZER`/`ADMIN`/`CHECKIN_STAFF` được tạo qua kênh khác (xem mục 11).
+**Design Consideration:** phương thức đăng nhập cho `ORGANIZER`/`ADMIN`/`CHECKIN_STAFF` được giả định là email/password (không qua Google OAuth2, vốn chỉ dành cho `CUSTOMER`). Giả định này cần được xác nhận chính thức trước khi triển khai — nếu đúng, `/auth/register` public chỉ áp dụng cho `CUSTOMER`; tài khoản `ORGANIZER`/`ADMIN`/`CHECKIN_STAFF` được tạo qua kênh khác (xem mục 11).
 
 ### POST /auth/login
 
@@ -146,9 +146,9 @@ Chi tiết TTL, rotation, RBAC: xem [`06-AUTHENTICATION.md`](./06-AUTHENTICATION
 }
 ```
 
-### PUT /events/{id} — ownership check
+### PUT /events/{id} — Kiểm tra ownership
 
-Chỉ `ORGANIZER` là chủ sở hữu event mới được sửa/xoá. `ORGANIZER` khác nhận `403 Forbidden` (`errorCode: EVENT_OWNERSHIP_VIOLATION`) dù cùng role. Xem [`06-AUTHENTICATION.md`](./06-AUTHENTICATION.md#ownership-check).
+Chỉ `ORGANIZER` là chủ sở hữu event mới được sửa/xoá. `ORGANIZER` khác nhận `403 Forbidden` (`errorCode: EVENT_OWNERSHIP_VIOLATION`) dù cùng role. Xem [`06-AUTHENTICATION.md`](./06-AUTHENTICATION.md#6-ownership-check).
 
 ---
 
@@ -159,7 +159,7 @@ Chỉ `ORGANIZER` là chủ sở hữu event mới được sửa/xoá. `ORGANIZ
 | `POST` | `/events/{eventId}/ticket-types` | ORGANIZER (owner) | Tạo loại vé cho event |
 | `GET` | `/events/{eventId}/ticket-types` | Public/Authenticated | Danh sách loại vé của event |
 | `GET` | `/ticket-types/{id}` | Public/Authenticated | Chi tiết loại vé |
-| `PUT` | `/ticket-types/{id}` | ORGANIZER (owner) | Cập nhật loại vé (giá không đổi sau khi mở bán — xem business rule) |
+| `PUT` | `/ticket-types/{id}` | ORGANIZER (owner) | Cập nhật loại vé (giá không đổi sau khi mở bán — xem quy tắc nghiệp vụ) |
 
 ### POST /events/{eventId}/ticket-types
 
@@ -176,7 +176,7 @@ Chỉ `ORGANIZER` là chủ sở hữu event mới được sửa/xoá. `ORGANIZ
 }
 ```
 
-Quy tắc sửa `quantityTotal` (không cho giảm dưới số đã bán/giữ chỗ), giá cố định sau khi mở bán: xem [`07-BUSINESS-RULES.md`](./07-BUSINESS-RULES.md).
+Quy tắc sửa `quantityTotal` (không cho giảm dưới số đã bán/giữ chỗ), giá vé cố định sau khi mở bán: xem [`07-BUSINESS-RULES.md`](./07-BUSINESS-RULES.md).
 
 ---
 
@@ -187,13 +187,13 @@ Quy tắc sửa `quantityTotal` (không cho giảm dưới số đã bán/giữ 
 | `POST` | `/tickets/reserve` | CUSTOMER | Giữ chỗ vé (bước 1) |
 | `POST` | `/tickets/{id}/confirm` | CUSTOMER (owner) | Xác nhận vé (bước 2), sinh QR |
 | `POST` | `/tickets/{id}/cancel` | CUSTOMER (owner) | Huỷ chủ động khi đang `RESERVED` |
-| `GET` | `/tickets/my` | CUSTOMER | Danh sách vé của tôi |
+| `GET` | `/tickets/my` | CUSTOMER | Danh sách vé của khách hàng hiện tại |
 | `GET` | `/tickets/{id}` | CUSTOMER (owner) | Chi tiết vé |
 | `GET` | `/tickets/{id}/qr` | CUSTOMER (owner) | Ảnh QR sinh on-the-fly (PNG) |
 
 ### POST /tickets/reserve
 
-**Header bắt buộc:** `Idempotency-Key: <uuid>` (xem [`07-BUSINESS-RULES.md#idempotency`](./07-BUSINESS-RULES.md#idempotency))
+**Header bắt buộc:** `Idempotency-Key: <uuid>` (xem [`07-BUSINESS-RULES.md#5-idempotency`](./07-BUSINESS-RULES.md#5-idempotency))
 
 ```json
 // Request
@@ -233,7 +233,7 @@ Quy tắc sửa `quantityTotal` (không cho giảm dưới số đã bán/giữ 
 }
 ```
 
-Toàn bộ luồng Reserve → Confirm, cơ chế chống oversell: xem [`01-ARCHITECTURE.md`](./01-ARCHITECTURE.md#6-luồng-đặt-vé-reserve--confirm).
+Toàn bộ luồng Reserve → Confirm và cơ chế chống oversell được mô tả tại [`01-ARCHITECTURE.md`](./01-ARCHITECTURE.md#6-luồng-đặt-vé-reserve--confirm).
 
 ---
 
@@ -262,7 +262,7 @@ Toàn bộ luồng Reserve → Confirm, cơ chế chống oversell: xem [`01-ARC
 }
 ```
 
-`CHECKIN_STAFF` chỉ được check-in vé thuộc event mình được gán — vi phạm trả `403` (`errorCode: CHECKIN_STAFF_EVENT_MISMATCH`). Xem [`06-AUTHENTICATION.md`](./06-AUTHENTICATION.md#ownership-check).
+`CHECKIN_STAFF` chỉ được check-in vé thuộc event mình được gán — vi phạm trả về `403` (`errorCode: CHECKIN_STAFF_EVENT_MISMATCH`). Xem [`06-AUTHENTICATION.md`](./06-AUTHENTICATION.md#6-ownership-check).
 
 ### GET /checkin/logs
 
@@ -308,9 +308,9 @@ GET /api/v1/checkin/logs?gateId=7&from=2026-09-01T00:00:00Z&to=2026-09-01T23:59:
 
 | Method | Endpoint | Role | Mô tả |
 |---|---|---|---|
-| `GET` | `/events/{eventId}/dashboard` | ORGANIZER (owner) | Snapshot số liệu hiện tại (REST, dùng khi mới load trang) |
-| WebSocket (STOMP) | `/topic/dashboard/{eventId}` | ORGANIZER (owner) | Push số liệu real-time toàn event |
-| WebSocket (STOMP) | `/topic/dashboard/{eventId}/{gateId}` | ORGANIZER (owner) | Push số liệu real-time theo cổng |
+| `GET` | `/events/{eventId}/dashboard` | ORGANIZER (owner) | Snapshot số liệu hiện tại (REST, dùng khi mới tải trang) |
+| WebSocket (STOMP) | `/topic/dashboard/{eventId}` | ORGANIZER (owner) | Đẩy số liệu real-time toàn event |
+| WebSocket (STOMP) | `/topic/dashboard/{eventId}/{gateId}` | ORGANIZER (owner) | Đẩy số liệu real-time theo cổng |
 
 ### GET /events/{eventId}/dashboard
 
@@ -361,13 +361,13 @@ Kết nối WebSocket yêu cầu access token qua header STOMP CONNECT (`Authori
 { "id": 30, "email": "staff1@example.com", "role": "CHECKIN_STAFF", "assignedEventId": 42 }
 ```
 
-> Xem TODO ở mục 4 liên quan tới phương thức xác thực của role này.
+Xem Design Consideration ở mục 4 liên quan tới phương thức xác thực của role này.
 
 ---
 
 ## 12. File Upload
 
-Upload banner sự kiện, lưu trên **Cloudinary** (backend nhận file, upload lên Cloudinary, lưu `bannerUrl` trả về vào `events.banner_url`).
+Upload banner sự kiện, lưu trữ trên **Cloudinary** (backend nhận file, upload lên Cloudinary, lưu `bannerUrl` trả về vào `events.banner_url`).
 
 ```
 POST /api/v1/events/{id}/banner
@@ -383,12 +383,12 @@ file: <binary image, jpg/png, tối đa 5MB>
 
 ## 13. Rate Limit
 
-> TODO: Need confirmation — thông tin nghiên cứu (`nghien_cuu.md`) chưa chốt giá trị rate limit cụ thể cho MVP (dự án quy mô nhỏ, cá nhân + bạn bè dùng thử). Đề xuất tạm thời để tham khảo, cần xác nhận trước khi áp dụng:
->
-> | Endpoint nhóm | Đề xuất |
-> |---|---|
-> | `/auth/login`, `/auth/register` | 10 request/phút/IP |
-> | `/tickets/reserve` | 20 request/phút/user |
-> | `/checkin` | không giới hạn (thiết bị nội bộ tại cổng) |
->
-> Có thể triển khai bằng Bucket4j hoặc filter đơn giản ở tầng Spring Security nếu được xác nhận cần thiết cho MVP.
+**Known Limitations:** giá trị rate limit cụ thể cho MVP chưa được chốt chính thức (dự án quy mô nhỏ, phục vụ cá nhân và người dùng thử nghiệm). Bảng dưới đây là đề xuất tạm thời, cần xác nhận trước khi áp dụng:
+
+| Endpoint nhóm | Đề xuất |
+|---|---|
+| `/auth/login`, `/auth/register` | 10 request/phút/IP |
+| `/tickets/reserve` | 20 request/phút/user |
+| `/checkin` | không giới hạn (thiết bị nội bộ tại cổng) |
+
+Có thể triển khai bằng Bucket4j hoặc filter đơn giản ở tầng Spring Security nếu được xác nhận cần thiết cho MVP.

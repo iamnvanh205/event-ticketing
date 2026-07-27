@@ -1,4 +1,4 @@
-# 02 - FOLDER STRUCTURE
+# 02 - Cấu Trúc Thư Mục
 
 ## Mục lục
 
@@ -13,10 +13,10 @@
 
 ## 1. Nguyên tắc chung
 
-- **Monorepo**: 1 repo Git duy nhất chứa cả `backend/` và `frontend/`.
+- **Monorepo**: một repo Git duy nhất chứa cả `backend/` và `frontend/`.
 - Backend tổ chức theo **package-by-feature** (không phải package-by-layer): mỗi module domain tự chứa toàn bộ Controller/Service/Repository/Entity/DTO của mình.
 - Frontend tổ chức theo **feature-based folder**: mỗi tính năng tự chứa components/hooks/api riêng.
-- Không tạo folder rỗng "phòng khi cần". Chỉ tạo `infra/` hoặc `deploy/` riêng khi số lượng file cấu hình tăng lên đủ nhiều (xem mục 5).
+- Không tạo folder rỗng dự phòng. Chỉ tạo `infra/` hoặc `deploy/` riêng khi số lượng file cấu hình tăng lên đủ nhiều (xem mục 5).
 
 ## 2. Cấu trúc Repo (Monorepo)
 
@@ -194,7 +194,7 @@ backend/
 └── mvnw / mvnw.cmd
 ```
 
-> Quy tắc bắt buộc: module **không** được `import` trực tiếp Repository/Entity của module khác. Muốn dùng dữ liệu module khác → gọi qua Service interface public. Xem [`01-ARCHITECTURE.md`](./01-ARCHITECTURE.md#4-ranh-giới-module-module-boundaries).
+**Quy tắc bắt buộc:** module không được `import` trực tiếp Repository/Entity của module khác. Việc sử dụng dữ liệu của module khác phải thực hiện qua Service interface public. Xem [`01-ARCHITECTURE.md`](./01-ARCHITECTURE.md#4-ranh-giới-module-module-boundaries).
 
 ## 4. Cấu trúc Frontend (Feature-based)
 
@@ -284,14 +284,14 @@ frontend/
 
 ## 5. Infra / Deploy
 
-Ở MVP: **không tạo** folder `infra/` hoặc `deploy/` riêng vì số lượng file cấu hình còn ít:
+Ở giai đoạn MVP, không tạo folder `infra/` hoặc `deploy/` riêng vì số lượng file cấu hình còn ít:
 
 - `backend/Dockerfile` — nằm trong `backend/`
 - `frontend/Dockerfile` — nằm trong `frontend/`
-- `docker-compose.yml` — nằm ở root (dùng chung cho local dev)
+- `docker-compose.yml` — nằm ở thư mục gốc (dùng chung cho local dev)
 - `.github/workflows/*.yml` — theo đúng chuẩn GitHub Actions
 
-**Khi nào tạo `infra/` riêng:** nếu số lượng file cấu hình tăng lên (VD: nhiều `docker-compose.*.yml` cho từng môi trường, nhiều script deploy, thêm Kubernetes manifest...), lúc đó mới tách:
+**Điều kiện tách `infra/` riêng:** khi số lượng file cấu hình tăng lên (ví dụ: nhiều `docker-compose.*.yml` cho từng môi trường, nhiều script deploy, bổ sung Kubernetes manifest...), cấu trúc được tách như sau:
 
 ```
 infra/
@@ -303,14 +303,14 @@ infra/
     └── deploy.sh
 ```
 
-> TODO: Need confirmation — chưa xác nhận thời điểm cụ thể sẽ tách `infra/`, tạm thời giữ nguyên cấu trúc tối giản như mục 2 cho đến khi có nhu cầu thực tế.
+**Ghi chú vận hành:** thời điểm cụ thể để tách `infra/` riêng chưa được xác định — tạm thời giữ nguyên cấu trúc tối giản như mục 2 cho đến khi phát sinh nhu cầu thực tế.
 
 ## 6. Quy tắc đặt file mới
 
-| Bạn muốn thêm | Đặt ở đâu |
+| Loại thay đổi | Vị trí đặt file |
 |---|---|
 | API endpoint mới cho module đã có | `<module>/controller/` |
-| Business logic mới | `<module>/service/` (khai báo ở interface, code ở `*Impl`) |
+| Business logic mới | `<module>/service/` (khai báo ở interface, triển khai ở `*Impl`) |
 | Bảng DB mới thuộc về 1 module | `<module>/entity/` + file migration mới trong `resources/db/migration/` |
 | Logic dùng chung nhiều module | `common/` (không đặt vào module cụ thể) |
 | Component UI dùng lại nhiều nơi | `frontend/src/components/` |

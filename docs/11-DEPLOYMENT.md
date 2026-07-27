@@ -1,8 +1,8 @@
-# 11 - DEPLOYMENT
+# 11 - Triển Khai Hệ Thống
 
 ## Mục lục
 
-1. [Environment tổng quan](#1-environment-tổng-quan)
+1. [Tổng quan môi trường](#1-tổng-quan-môi-trường)
 2. [Local Development (Docker Compose)](#2-local-development-docker-compose)
 3. [Production — Render (Backend)](#3-production--render-backend)
 4. [Production — Vercel (Frontend)](#4-production--vercel-frontend)
@@ -14,7 +14,7 @@
 
 ---
 
-## 1. Environment tổng quan
+## 1. Tổng quan môi trường
 
 | Environment | Backend | Frontend | Database |
 |---|---|---|---|
@@ -23,7 +23,7 @@
 
 ## 2. Local Development (Docker Compose)
 
-`docker-compose.yml` ở root repo, chạy đồng thời Postgres + backend + frontend:
+File `docker-compose.yml` đặt ở thư mục gốc repo, chạy đồng thời Postgres, backend và frontend:
 
 ```yaml
 version: "3.9"
@@ -80,8 +80,8 @@ docker compose up postgres
 
 ## 3. Production — Render (Backend)
 
-- Deploy dạng **Web Service** từ Dockerfile trong `backend/`.
-- Biến môi trường khai báo trực tiếp trên **Render Dashboard** (xem mục 6).
+- Deploy dạng Web Service từ Dockerfile trong `backend/`.
+- Biến môi trường khai báo trực tiếp trên Render Dashboard (xem mục 6).
 - Health check endpoint: `GET /actuator/health` (Spring Boot Actuator).
 
 ```dockerfile
@@ -102,25 +102,25 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 
 ## 4. Production — Vercel (Frontend)
 
-- Deploy dạng **Static Site / Vite project**, build command `npm run build`, output directory `dist/`.
-- Biến môi trường (`VITE_API_BASE_URL`, `VITE_WS_URL`) khai báo trên **Vercel Dashboard**.
+- Deploy dạng Static Site / Vite project, build command `npm run build`, output directory `dist/`.
+- Biến môi trường (`VITE_API_BASE_URL`, `VITE_WS_URL`) khai báo trên Vercel Dashboard.
 - Auto-deploy khi có push/merge vào `main` (xem mục 7).
 
 ## 5. Production — Neon (Database)
 
-- **Runtime connection**: dùng **pooled connection string** (qua PgBouncer của Neon) — phù hợp nhiều connection ngắn hạn từ HikariCP.
-- **Migration connection**: dùng **direct connection string** (không qua pooler) cho Flyway.
+- **Runtime connection**: sử dụng pooled connection string (qua PgBouncer của Neon), phù hợp nhiều connection ngắn hạn từ HikariCP.
+- **Migration connection**: sử dụng direct connection string (không qua pooler) cho Flyway.
 
 ```
 DATABASE_URL=postgresql://<user>:<pass>@<host>-pooler.neon.tech/event_ticketing?sslmode=require
 DATABASE_URL_DIRECT=postgresql://<user>:<pass>@<host>.neon.tech/event_ticketing?sslmode=require
 ```
 
-Chi tiết migration: xem [`05-DATABASE.md`](./05-DATABASE.md#13-migration-flyway).
+Chi tiết migration được mô tả tại [`05-DATABASE.md`](./05-DATABASE.md#13-migration-flyway).
 
 ## 6. Secrets Management
 
-Quản lý trực tiếp qua **Environment Variables trên dashboard Render/Vercel** — **không dùng thêm công cụ khác** (không Vault, không AWS Secrets Manager) ở MVP, phù hợp quy mô dự án cá nhân.
+Quản lý trực tiếp qua Environment Variables trên dashboard Render/Vercel — không sử dụng thêm công cụ khác (không Vault, không AWS Secrets Manager) ở giai đoạn MVP, phù hợp quy mô dự án cá nhân.
 
 | Biến | Nơi khai báo | Ghi chú |
 |---|---|---|
@@ -132,11 +132,11 @@ Quản lý trực tiếp qua **Environment Variables trên dashboard Render/Verc
 | `VITE_API_BASE_URL` | Vercel | URL backend production |
 | `VITE_WS_URL` | Vercel | URL WebSocket production |
 
-**Quy tắc bắt buộc**: không commit bất kỳ secret nào vào Git, kể cả trong file `application-local.yml` mẫu — dùng `application-local.yml.example` làm template, file thật nằm trong `.gitignore`.
+**Quy tắc bắt buộc**: không commit bất kỳ secret nào vào Git, kể cả trong file `application-local.yml` mẫu — sử dụng `application-local.yml.example` làm template, file thật nằm trong `.gitignore`.
 
 ## 7. CI/CD — GitHub Actions
 
-Áp dụng **cả CI và CD**:
+Hệ thống áp dụng cả CI và CD:
 
 - **CI**: chạy test tự động khi có push/PR (bao gồm unit test, integration test, concurrency test — xem [`10-TESTING.md`](./10-TESTING.md)).
 - **CD**: auto-deploy lên Render/Vercel khi merge vào `main`.
@@ -202,17 +202,17 @@ jobs:
         run: npm ci && npm run build && npm run test
 ```
 
-> Vercel có tích hợp GitHub trực tiếp (auto-deploy khi merge `main` mà không cần workflow riêng) — `frontend-deploy.yml` chỉ cần thiết nếu muốn kiểm soát thủ công thay vì dùng tích hợp mặc định của Vercel.
+**Ghi chú:** Vercel có tích hợp GitHub trực tiếp (auto-deploy khi merge `main` mà không cần workflow riêng) — `frontend-deploy.yml` chỉ cần thiết nếu muốn kiểm soát thủ công thay vì dùng tích hợp mặc định của Vercel.
 
 ## 8. Logging & Monitoring
 
-Ở MVP: dùng **log built-in của Render/Vercel** (xem log trực tiếp qua dashboard), **không** tích hợp công cụ giám sát chuyên sâu (Sentry, Grafana, Prometheus...) — để ở giai đoạn mở rộng sau.
+Ở giai đoạn MVP, hệ thống sử dụng log built-in của Render/Vercel (xem log trực tiếp qua dashboard), không tích hợp công cụ giám sát chuyên sâu (Sentry, Grafana, Prometheus...) — thuộc phạm vi mở rộng sau.
 
 - Backend: log text thường qua SLF4J/Logback (xem [`03-CODING-STANDARDS.md#7-logging`](./03-CODING-STANDARDS.md#7-logging)), Render tự thu thập stdout/stderr.
 - Frontend: lỗi runtime hiển thị qua console browser, chưa cần error tracking tập trung ở MVP.
 
 ## 9. Backup
 
-Neon có cơ chế backup/point-in-time-restore theo mặc định của dịch vụ (theo gói sử dụng) — dự án MVP **dùng nguyên cơ chế mặc định của Neon**, không tự xây thêm pipeline backup riêng.
+Neon có cơ chế backup/point-in-time-restore theo mặc định của dịch vụ (theo gói sử dụng) — dự án MVP sử dụng nguyên cơ chế mặc định của Neon, không tự xây thêm pipeline backup riêng.
 
-> TODO: Need confirmation — cấu hình cụ thể của gói Neon đang dùng (thời gian retention point-in-time-restore) chưa được xác nhận trong nghiên cứu ban đầu, cần kiểm tra trực tiếp trên Neon Dashboard khi thiết lập production.
+**Known Limitations:** cấu hình cụ thể của gói Neon đang sử dụng (thời gian retention point-in-time-restore) chưa được xác nhận trong nghiên cứu ban đầu, cần kiểm tra trực tiếp trên Neon Dashboard khi thiết lập production.

@@ -1,4 +1,4 @@
-# 10 - TESTING
+# 10 - Chiến Lược Kiểm Thử
 
 ## Mục lục
 
@@ -17,16 +17,16 @@
 
 | Loại test | Công cụ | Mục tiêu |
 |---|---|---|
-| Unit Test | JUnit 5 + Mockito | Test logic Service layer cô lập (mock Repository) |
-| Integration Test | Testcontainers (PostgreSQL thật) | Test hành vi thật của DB, đặc biệt `SELECT ... FOR UPDATE` |
-| Concurrency Test | `ExecutorService` + `CountDownLatch` | **Bằng chứng quan trọng nhất của dự án** — chứng minh chống oversell/double check-in đúng dưới tải đồng thời thật |
-| E2E Test | Playwright (frontend) hoặc test toàn luồng qua REST API | Test toàn bộ luồng nghiệp vụ từ góc nhìn người dùng |
+| Unit Test | JUnit 5 + Mockito | Kiểm thử logic Service layer cô lập (mock Repository) |
+| Integration Test | Testcontainers (PostgreSQL thật) | Kiểm thử hành vi thật của DB, đặc biệt `SELECT ... FOR UPDATE` |
+| Concurrency Test | `ExecutorService` + `CountDownLatch` | Bằng chứng kỹ thuật quan trọng nhất của dự án — chứng minh chống oversell/double check-in đúng dưới tải đồng thời thật |
+| E2E Test | Playwright (frontend) hoặc test toàn luồng qua REST API | Kiểm thử toàn bộ luồng nghiệp vụ từ góc nhìn người dùng |
 
-Không đặt target % coverage cứng — **ưu tiên chất lượng test ở phần concurrency** hơn là số liệu coverage tổng thể.
+Không đặt target % coverage cứng — ưu tiên chất lượng test ở phần concurrency hơn số liệu coverage tổng thể.
 
 ## 2. Unit Test
 
-**JUnit 5 + Mockito**, tập trung ở **Service layer**. Bắt buộc có test cho các trường hợp:
+Sử dụng **JUnit 5 + Mockito**, tập trung ở tầng Service. Bắt buộc có test cho các trường hợp:
 
 - Chống oversell (logic kiểm tra `quantityRemaining` trong Service, mock Repository trả về giá trị biên)
 - Chống double check-in (logic xử lý khi `affected rows = 0`)
@@ -70,7 +70,7 @@ class TicketServiceTest {
 
 ## 3. Integration Test (Testcontainers)
 
-**Bắt buộc dùng Testcontainers với PostgreSQL thật** (image `postgres:16`), **không dùng H2** — hành vi lock (`SELECT ... FOR UPDATE`) của H2 khác Postgres, test trên H2 có thể pass nhưng vẫn sai trên production.
+Bắt buộc sử dụng Testcontainers với PostgreSQL thật (image `postgres:16`), không dùng H2 — hành vi lock (`SELECT ... FOR UPDATE`) của H2 khác Postgres, test trên H2 có thể pass nhưng vẫn sai trên production.
 
 ```java
 @SpringBootTest
@@ -102,7 +102,7 @@ class TicketIntegrationTest {
 
 ## 4. Concurrency Test — phần quan trọng nhất
 
-Bộ test riêng dùng **`ExecutorService` + `CountDownLatch`** để giả lập nhiều thread gửi request **thực sự đồng thời** (không phải tuần tự) — đây là **bằng chứng kỹ thuật quan trọng nhất** của toàn bộ dự án, chứng minh trực tiếp mục tiêu học tập về concurrency control.
+Bộ test riêng sử dụng `ExecutorService` + `CountDownLatch` để giả lập nhiều thread gửi request thực sự đồng thời (không phải tuần tự) — đây là bằng chứng kỹ thuật quan trọng nhất của toàn bộ dự án, chứng minh trực tiếp mục tiêu kỹ thuật về concurrency control.
 
 ### 4.1. Test chống oversell: 50 thread cùng đặt 1 vé cuối cùng
 
@@ -125,7 +125,7 @@ void reserve_50ConcurrentRequests_onlyOneShouldSucceed_whenOnlyOneTicketLeft() t
         executor.submit(() -> {
             readyLatch.countDown();
             try {
-                startLatch.await(); // đảm bảo mọi thread bắt đầu CÙNG LÚC
+                startLatch.await(); // đảm bảo mọi thread bắt đầu cùng lúc
                 ticketService.reserve(new ReserveRequest(ticketTypeId, 1), randomCustomerId(), UUID.randomUUID().toString());
                 successCount.incrementAndGet();
             } catch (BusinessException e) {
@@ -141,7 +141,7 @@ void reserve_50ConcurrentRequests_onlyOneShouldSucceed_whenOnlyOneTicketLeft() t
     doneLatch.await(10, TimeUnit.SECONDS);
     executor.shutdown();
 
-    // Assert: ĐÚNG 1 thành công, 49 nhận TICKET_SOLD_OUT
+    // Assert: đúng 1 thành công, 49 nhận TICKET_SOLD_OUT
     assertEquals(1, successCount.get());
     assertEquals(49, soldOutCount.get());
 
@@ -186,12 +186,12 @@ void checkIn_20ConcurrentScans_onlyOneShouldSucceed() throws InterruptedExceptio
 }
 ```
 
-> Cả 2 test trên **bắt buộc chạy trên Testcontainers PostgreSQL thật** (kế thừa từ mục 3), vì hành vi lock/atomic update chỉ đúng khi chạy trên engine DB thật.
+Cả hai test trên bắt buộc chạy trên Testcontainers PostgreSQL thật (kế thừa từ mục 3), vì hành vi lock/atomic update chỉ đúng khi chạy trên engine DB thật.
 
 ## 5. E2E Test
 
-- **Frontend**: Playwright, test các luồng chính: đăng nhập → tạo event (Organizer) → đặt vé (Customer) → check-in (Checkin Staff) → xem dashboard cập nhật real-time.
-- **Alternative**: test toàn luồng qua REST API trực tiếp (không qua UI) nếu ưu tiên tốc độ viết test hơn độ phủ UI thật.
+- **Frontend**: Playwright, kiểm thử các luồng chính: đăng nhập → tạo event (Organizer) → đặt vé (Customer) → check-in (Checkin Staff) → xem dashboard cập nhật real-time.
+- **Phương án thay thế**: test toàn luồng qua REST API trực tiếp (không qua UI) nếu ưu tiên tốc độ viết test hơn độ phủ UI thật.
 
 ```typescript
 // Ví dụ Playwright (minh hoạ luồng happy path)
@@ -205,11 +205,11 @@ test('customer có thể đặt vé và nhận QR', async ({ page }) => {
 });
 ```
 
-> Công cụ E2E cụ thể (Playwright vs REST-only) — đề xuất **Playwright** cho độ phủ thực tế cao hơn, nhưng có thể điều chỉnh tuỳ thời gian thực tế khi triển khai.
+**Design Consideration:** công cụ E2E cụ thể (Playwright hoặc REST-only) — đề xuất Playwright cho độ phủ thực tế cao hơn, có thể điều chỉnh tuỳ thời gian thực tế khi triển khai.
 
 ## 6. Test Data
 
-Dùng dữ liệu seed riêng cho môi trường test (tách biệt với seed demo ở [`05-DATABASE.md#14-seed-data`](./05-DATABASE.md#14-seed-data)), tạo qua test fixture/builder pattern:
+Sử dụng dữ liệu seed riêng cho môi trường test (tách biệt với seed demo ở [`05-DATABASE.md#14-seed-data`](./05-DATABASE.md#14-seed-data)), tạo qua test fixture/builder pattern:
 
 ```java
 public class TestDataBuilder {
@@ -228,9 +228,9 @@ public class TestDataBuilder {
 
 Không đặt target % coverage cứng cho toàn dự án. Ưu tiên theo thứ tự:
 
-1. **100% các luồng concurrency quan trọng** (mục 4) phải có test — không thương lượng.
-2. Business rule ở [`07-BUSINESS-RULES.md`](./07-BUSINESS-RULES.md) — mỗi rule có ít nhất 1 unit test.
-3. Coverage tổng thể — theo dõi tham khảo (VD: JaCoCo report trong CI), không chặn merge PR dựa trên % coverage.
+1. 100% các luồng concurrency quan trọng (mục 4) phải có test — không thương lượng.
+2. Mỗi quy tắc nghiệp vụ tại [`07-BUSINESS-RULES.md`](./07-BUSINESS-RULES.md) có ít nhất 1 unit test.
+3. Coverage tổng thể — theo dõi tham khảo (ví dụ: báo cáo JaCoCo trong CI), không chặn merge PR dựa trên % coverage.
 
 ## 8. Cấu trúc thư mục test
 
@@ -248,4 +248,4 @@ backend/src/test/java/com/vanh/eventticketing/
     └── TestDataBuilder.java
 ```
 
-> Quy ước: file test tên `*ConcurrencyIT.java` hoặc `*IT.java` (Integration Test) chạy chậm hơn — có thể tách profile Maven riêng (`mvn test` chạy unit test nhanh, `mvn verify` chạy thêm integration/concurrency test) để CI phân tách rõ giai đoạn.
+**Quy ước:** file test tên `*ConcurrencyIT.java` hoặc `*IT.java` (Integration Test) chạy chậm hơn — có thể tách profile Maven riêng (`mvn test` chạy unit test nhanh, `mvn verify` chạy thêm integration/concurrency test) để CI phân tách rõ giai đoạn.
