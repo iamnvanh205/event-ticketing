@@ -10,6 +10,8 @@ import { CheckInPage } from './features/checkin/pages/CheckInPage'
 import { OrganizerDashboardPage } from './features/dashboard/pages/OrganizerDashboardPage'
 import { EventDetailPage } from './features/events/pages/EventDetailPage'
 import { EventsPage } from './features/events/pages/EventsPage'
+import { LandingPage } from './features/events/pages/LandingPage'
+import { SearchPage } from './features/events/pages/SearchPage'
 import { MyTicketsPage } from './features/tickets/pages/MyTicketsPage'
 import { navigate, usePath } from './routes/navigation'
 import './App.css'
@@ -31,21 +33,36 @@ function App() {
   }, [refresh])
 
   useEffect(() => {
-    if (!ready || path !== '/') return
+    if (!ready || path !== '/' || !user) return
     navigate(homeForRole(user?.role))
-  }, [path, ready, user?.role])
+  }, [path, ready, user])
+
+  useEffect(() => {
+    if (!ready || path !== '/auth' || !user) return
+    const returnTo = sessionStorage.getItem('returnTo')
+    sessionStorage.removeItem('returnTo')
+    navigate(returnTo?.startsWith('/') && !returnTo.startsWith('//') ? returnTo : homeForRole(user.role))
+  }, [path, ready, user])
 
   if (!ready) {
     return <main><PageState kind="loading" title="Loading your session" description="Preparing a secure workspace…" /></main>
   }
 
-  if (path === '/auth' || (!user && !isPublicPath(path))) {
+  if (path === '/auth') {
+    return <AuthPage />
+  }
+
+  if (!user && !isPublicPath(path)) {
     return <AuthPage />
   }
 
   let content: ReactNode
-  if (path === '/events') {
+  if (path === '/') {
+    content = <LandingPage />
+  } else if (path === '/events') {
     content = <EventsPage />
+  } else if (path === '/search') {
+    content = <SearchPage />
   } else if (/^\/events\/\d+$/.test(path)) {
     content = <EventDetailPage eventId={Number(path.split('/')[2])} signedIn={Boolean(user)} />
   } else if (path === '/tickets') {
@@ -66,8 +83,6 @@ function App() {
       : <AuthPage />
   } else if (path === '/403') {
     content = <SystemStatePage kind="forbidden" homeHref={homeForRole(user?.role)} />
-  } else if (path === '/') {
-    content = <PageState kind="loading" title="Redirecting" description="Taking you to your workspace…" />
   } else {
     content = <SystemStatePage kind="not-found" homeHref={homeForRole(user?.role)} />
   }
@@ -80,7 +95,7 @@ function App() {
 }
 
 function isPublicPath(path: string) {
-  return path === '/' || path === '/events' || /^\/events\/\d+$/.test(path) || path === '/auth'
+  return path === '/' || path === '/events' || path === '/search' || /^\/events\/\d+$/.test(path) || path === '/auth'
 }
 
 export default App

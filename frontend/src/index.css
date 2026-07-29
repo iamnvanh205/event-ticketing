@@ -143,6 +143,7 @@
   --input: var(--neutral-300);
   --ring: var(--iris-500);
   --event-accent: var(--coral-500);
+  --qr-surface: #ffffff;
   --scrim: rgb(14 11 17 / 56%);
   --sidebar: #ffffff;
   --sidebar-foreground: var(--neutral-900);
@@ -190,6 +191,7 @@
   --input: var(--neutral-700);
   --ring: var(--iris-400);
   --event-accent: var(--coral-400);
+  --qr-surface: #ffffff;
   --scrim: rgb(0 0 0 / 72%);
   --success-surface: #123a2b;
   --success-strong: #77d7aa;

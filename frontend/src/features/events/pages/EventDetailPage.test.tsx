@@ -57,7 +57,7 @@ describe('EventDetailPage', () => {
   it('renders event name and location after load', async () => {
     render(<EventDetailPage eventId={1} signedIn />)
     await waitFor(() => {
-      expect(screen.getByText('Summer Festival')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Summer Festival' })).toBeInTheDocument()
       expect(screen.getByText('Hanoi')).toBeInTheDocument()
     })
   })
@@ -74,13 +74,11 @@ describe('EventDetailPage', () => {
     render(<EventDetailPage eventId={1} signedIn />)
     await waitFor(() => screen.getByText('VIP'))
 
-    const buttons = screen.getAllByRole('button', { name: /reserve/i })
-    // VIP has 0 remaining — it should be the disabled one
-    const vipButton = buttons.find((btn) => btn.closest('.ticket-type')?.textContent?.includes('VIP'))
+    const vipButton = screen.getByRole('button', { name: /sold out/i })
     expect(vipButton).toBeDisabled()
   })
 
-  it('redirects to /account when not signed in and Reserve is clicked', async () => {
+  it('redirects to /auth when not signed in and Reserve is clicked', async () => {
     const user = userEvent.setup()
     render(<EventDetailPage eventId={1} signedIn={false} />)
     await waitFor(() => screen.getByText('Standard'))
@@ -88,7 +86,7 @@ describe('EventDetailPage', () => {
     const [reserveStandard] = screen.getAllByRole('button', { name: /reserve/i })
     await user.click(reserveStandard)
 
-    expect(vi.mocked(navigation.navigate)).toHaveBeenCalledWith('/account')
+    expect(vi.mocked(navigation.navigate)).toHaveBeenCalledWith('/auth')
   })
 
   it('shows reserved box after successful reservation', async () => {
