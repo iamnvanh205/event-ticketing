@@ -18,7 +18,13 @@ export function PageState({ title, description, action, kind = 'empty', headingL
   const Icon = kind === 'loading' ? LoaderCircle : kind === 'error' ? AlertCircle : Inbox
   const Heading = headingLevel === 1 ? 'h1' : 'h2'
   return (
-    <section className="page-state" aria-live={kind === 'error' ? 'assertive' : 'polite'} aria-busy={kind === 'loading'}>
+    <section
+      className={`page-state page-state-${kind}`}
+      aria-atomic="true"
+      aria-busy={kind === 'loading'}
+      aria-live={kind === 'empty' ? 'polite' : undefined}
+      role={kind === 'error' ? 'alert' : kind === 'loading' ? 'status' : undefined}
+    >
       <div className="page-state-content">
         <span className="page-state-icon" aria-hidden="true"><Icon className={kind === 'loading' ? 'animate-spin' : ''} size={22} /></span>
         <Heading>{title}</Heading>

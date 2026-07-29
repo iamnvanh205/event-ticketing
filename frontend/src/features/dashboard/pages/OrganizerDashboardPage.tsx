@@ -139,7 +139,7 @@ export function OrganizerDashboardPage({ accessToken, organizerId, initialEventI
                     <span>{snapshot.totalCheckedIn.toLocaleString()} of {snapshot.totalTicketsSold.toLocaleString()} sold tickets checked in</span>
                   </div>
                   <div className="progress-track" role="progressbar" aria-label="Admission progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
-                    <span style={{ width: `${progress}%` }} />
+                    <span style={{ transform: `scaleX(${progress / 100})` }} />
                   </div>
                   <a className="outline-action" href={eventId ? `/organizer/events/${eventId}/live` : '/organizer/live'}>Open live operations</a>
                 </article>
