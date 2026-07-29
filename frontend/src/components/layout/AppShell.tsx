@@ -64,9 +64,16 @@ function isActive(path: string, href: string) {
   return path === href || (!exactOnly.includes(href) && path.startsWith(`${href}/`))
 }
 
-function Brand() {
+function homeForRole(role: AppRole) {
+  if (role === 'ORGANIZER') return '/organizer'
+  if (role === 'CHECKIN_STAFF') return '/checkin'
+  if (role === 'ADMIN') return '/admin'
+  return '/events'
+}
+
+function Brand({ href = '/events' }: { href?: string }) {
   return (
-    <a className="brand-link" href="/events" aria-label="Event Ticketing home">
+    <a className="brand-link" href={href} aria-label="Event Ticketing home">
       <span className="brand-mark" aria-hidden="true"><Ticket size={18} /></span>
       <span>Event Ticketing</span>
     </a>
@@ -103,7 +110,7 @@ function Topbar({ role, userName, onLogout, path, operational = false }: AppShel
   return (
     <header className={`topbar ${operational ? 'mobile-bar' : ''}`}>
       <div className="topbar-inner">
-        <Brand />
+        <Brand href={homeForRole(role)} />
         <nav aria-label="Primary navigation"><NavLinks items={items} path={path} /></nav>
         <div className="topbar-actions">
           <ThemeToggle />
@@ -120,7 +127,7 @@ function Topbar({ role, userName, onLogout, path, operational = false }: AppShel
               </button>
             </>
           )}
-          <details className="mobile-menu">
+          <details className="mobile-menu" key={path}>
             <summary className="icon-button" aria-label="Open navigation"><Menu aria-hidden="true" size={20} /></summary>
             <nav aria-label="Mobile navigation">
               <NavLinks items={items} path={path} />
@@ -151,7 +158,7 @@ export function AppShell(props: AppShellProps) {
       <div className="app-frame">
         <a className="skip-link" href="#main-content">Skip to content</a>
         <Topbar {...props} path={path} />
-        <main className="app-main" id="main-content">{props.children}</main>
+        <main className="app-main" id="main-content" tabIndex={-1}>{props.children}</main>
         {(props.role === 'GUEST' || props.role === 'CUSTOMER') && <SiteFooter role={props.role} />}
         {attendeeMobileNav && (
           <nav className="mobile-bottom-nav" aria-label="Mobile primary navigation">
@@ -172,7 +179,7 @@ export function AppShell(props: AppShellProps) {
     <div className="app-frame has-sidebar">
       <a className="skip-link" href="#main-content">Skip to content</a>
       <aside className="sidebar">
-        <Brand />
+        <Brand href={homeForRole(props.role)} />
         <nav className="sidebar-nav" aria-label="Primary navigation"><NavLinks items={items} path={path} /></nav>
         <div className="sidebar-footer">
           <a className="nav-link" href="/account/profile"><UserRound aria-hidden="true" size={18} />Profile</a>
@@ -184,7 +191,7 @@ export function AppShell(props: AppShellProps) {
       </aside>
       <div className="app-main">
         <Topbar {...props} path={path} operational />
-        <main id="main-content">{props.children}</main>
+        <main id="main-content" tabIndex={-1}>{props.children}</main>
       </div>
     </div>
   )

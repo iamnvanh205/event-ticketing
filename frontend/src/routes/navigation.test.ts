@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { navigate, usePath } from './navigation'
+import { installInternalNavigation, navigate, useLocationSearch, usePath } from './navigation'
 
 beforeEach(() => {
   // Reset location to '/'
   window.history.pushState({}, '', '/')
+  vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
 })
 
 describe('navigate()', () => {
@@ -30,6 +31,40 @@ describe('navigate()', () => {
     navigate('/events')
     navigate('/')
     expect(window.location.pathname).toBe('/')
+  })
+})
+
+describe('installInternalNavigation()', () => {
+  it('intercepts ordinary same-origin links', () => {
+    const uninstall = installInternalNavigation()
+    const anchor = document.createElement('a')
+    anchor.href = '/events/42'
+    document.body.append(anchor)
+
+    const click = new MouseEvent('click', { bubbles: true, button: 0, cancelable: true })
+    anchor.dispatchEvent(click)
+
+    expect(click.defaultPrevented).toBe(true)
+    expect(window.location.pathname).toBe('/events/42')
+    anchor.remove()
+    uninstall()
+  })
+
+  it('preserves modified clicks', () => {
+    const uninstall = installInternalNavigation()
+    const anchor = document.createElement('a')
+    anchor.href = '/events/42'
+    document.body.append(anchor)
+    const pushState = vi.spyOn(window.history, 'pushState')
+    document.addEventListener('click', (event) => event.preventDefault(), { once: true })
+
+    const click = new MouseEvent('click', { bubbles: true, button: 0, cancelable: true, ctrlKey: true })
+    anchor.dispatchEvent(click)
+
+    expect(pushState).not.toHaveBeenCalled()
+    expect(window.location.pathname).toBe('/')
+    anchor.remove()
+    uninstall()
   })
 })
 
@@ -73,5 +108,18 @@ describe('usePath()', () => {
     // After unmount, hook should no longer track changes
     act(() => { navigate('/tickets') })
     expect(result.current).toBe('/events') // still the last value before unmount
+  })
+})
+
+describe('useLocationSearch()', () => {
+  it('updates when the query string changes on the same page', () => {
+    window.history.pushState({}, '', '/search?q=music')
+    const { result } = renderHook(() => useLocationSearch())
+
+    act(() => {
+      navigate('/search?q=design')
+    })
+
+    expect(result.current).toBe('?q=design')
   })
 })
