@@ -52,12 +52,12 @@ export function CheckoutPage({ ticketId, user }: { ticketId: number; user: AuthU
     }
   }
 
-  if (loading) return <section className="page"><PageState kind="loading" title="Loading checkout" description="Verifying your held ticket…" /></section>
-  if (!context || error) return <section className="page"><PageState kind="error" title="Checkout unavailable" description={error || 'This reservation could not be found.'} action={<a className="outline-action" href="/tickets">Open My Tickets</a>} /></section>
+  if (loading) return <section className="page"><PageState headingLevel={1} kind="loading" title="Loading checkout" description="Verifying your held ticket…" /></section>
+  if (!context || error) return <section className="page"><PageState headingLevel={1} kind="error" title="Checkout unavailable" description={error || 'This reservation could not be found.'} action={<a className="outline-action" href="/tickets">Open My Tickets</a>} /></section>
 
   const { ticket, ticketType, event } = context
   if (ticket.status !== 'RESERVED') {
-    return <section className="page"><PageState title={ticket.status === 'CONFIRMED' ? 'This ticket is already confirmed' : 'This reservation is no longer active'} description="Open the ticket wallet for its current status and next action." action={<a className="primary-action" href={`/tickets/${ticket.id}`}>View ticket</a>} /></section>
+    return <section className="page"><PageState headingLevel={1} title={ticket.status === 'CONFIRMED' ? 'This ticket is already confirmed' : 'This reservation is no longer active'} description="Open the ticket wallet for its current status and next action." action={<a className="primary-action" href={`/tickets/${ticket.id}`}>View ticket</a>} /></section>
   }
 
   const expired = remaining === 0

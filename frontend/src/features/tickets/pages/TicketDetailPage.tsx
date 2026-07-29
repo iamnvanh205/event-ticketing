@@ -8,8 +8,8 @@ import { useTicketContext } from '../hooks/useTicketContext'
 
 export function TicketDetailPage({ ticketId }: { ticketId: number }) {
   const { context, loading, error } = useTicketContext(ticketId)
-  if (loading) return <section className="page"><PageState kind="loading" title="Loading ticket" description="Checking its current entry status…" /></section>
-  if (!context || error) return <section className="page"><PageState kind="error" title="Ticket unavailable" description="This ticket could not be found in your account." action={<a className="outline-action" href="/tickets">Open My Tickets</a>} /></section>
+  if (loading) return <section className="page"><PageState headingLevel={1} kind="loading" title="Loading ticket" description="Checking its current entry status…" /></section>
+  if (!context || error) return <section className="page"><PageState headingLevel={1} kind="error" title="Ticket unavailable" description="This ticket could not be found in your account." action={<a className="outline-action" href="/tickets">Open My Tickets</a>} /></section>
 
   const { ticket, ticketType, event } = context
   const canEnter = ticket.status === 'CONFIRMED' && ticket.qrCode

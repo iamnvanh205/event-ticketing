@@ -54,8 +54,8 @@ export function EventWorkspacePage({ eventId, section = 'overview' }: { eventId?
     void load()
   }, [load])
 
-  if (loading) return <section className="page"><PageState kind="loading" title="Loading event workspace" description="Fetching details, tickets, gates, and staff." /></section>
-  if (eventId && error && !event) return <section className="page"><PageState kind="error" title="Could not open event" description={error} action={<a className="outline-action" href="/organizer/events">Back to events</a>} /></section>
+  if (loading) return <section className="page"><PageState headingLevel={1} kind="loading" title="Loading event workspace" description="Fetching details, tickets, gates, and staff." /></section>
+  if (eventId && error && !event) return <section className="page"><PageState headingLevel={1} kind="error" title="Could not open event" description={error} action={<a className="outline-action" href="/organizer/events">Back to events</a>} /></section>
 
   const base = eventId ? `/organizer/events/${eventId}` : '/organizer/events/new'
 

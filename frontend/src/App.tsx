@@ -54,7 +54,7 @@ function App() {
   }, [path, ready, user])
 
   if (!ready) {
-    return <main><PageState kind="loading" title="Loading your session" description="Preparing a secure workspace…" /></main>
+    return <main><PageState headingLevel={1} kind="loading" title="Loading your session" description="Preparing a secure workspace…" /></main>
   }
 
   if (path === '/auth') {

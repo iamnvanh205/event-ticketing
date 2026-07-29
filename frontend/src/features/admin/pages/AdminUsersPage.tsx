@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { ChevronLeft, ChevronRight, LockKeyhole, Search, Shield, UnlockKeyhole } from 'lucide-react'
 import { PageTitle } from '../../../components/layout/PageTitle'
 import { PageState } from '../../../components/ui/feedback'
@@ -15,6 +15,7 @@ export function AdminUsersPage({ currentUserId }: { currentUserId: number }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [pending, setPending] = useState<AuthUser | null>(null)
+  const returnFocus = useRef<HTMLButtonElement | null>(null)
 
   useEffect(() => {
     listAdminUsers(page)
@@ -41,10 +42,33 @@ export function AdminUsersPage({ currentUserId }: { currentUserId: number }) {
     try {
       const updated = await setAdminUserStatus(pending.id, active)
       setUsers((items) => items.map((item) => item.id === updated.id ? updated : item))
-      setPending(null)
+      closeDialog()
       setError('')
     } catch {
       setError(`Could not ${active ? 'restore' : 'lock'} this account.`)
+    }
+  }
+
+  function closeDialog() {
+    setPending(null)
+    requestAnimationFrame(() => returnFocus.current?.focus())
+  }
+
+  function handleDialogKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === 'Escape') {
+      closeDialog()
+      return
+    }
+    if (event.key !== 'Tab') return
+    const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'))
+    const first = buttons[0]
+    const last = buttons.at(-1)
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault()
+      last?.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first?.focus()
     }
   }
 
@@ -69,7 +93,7 @@ export function AdminUsersPage({ currentUserId }: { currentUserId: number }) {
               <span className="admin-identity" role="cell"><span className="avatar" aria-hidden="true">{user.fullName.slice(0, 1).toUpperCase()}</span><span><strong>{user.fullName}</strong><small>{user.email}</small></span></span>
               <span role="cell" data-label="Role"><span className="status"><Shield aria-hidden="true" size={13} />{user.role.replaceAll('_', ' ').toLowerCase()}</span></span>
               <span role="cell" data-label="Status"><span className={`status ${active ? 'success' : 'error'}`}>{active ? 'Active' : 'Locked'}</span></span>
-              <span role="cell"><button className="outline-action" disabled={user.id === currentUserId} type="button" onClick={() => setPending(user)}>{active ? <LockKeyhole aria-hidden="true" size={16} /> : <UnlockKeyhole aria-hidden="true" size={16} />}{active ? 'Lock' : 'Restore'}</button></span>
+              <span role="cell"><button className="outline-action" disabled={user.id === currentUserId} type="button" onClick={(event) => { returnFocus.current = event.currentTarget; setPending(user) }}>{active ? <LockKeyhole aria-hidden="true" size={16} /> : <UnlockKeyhole aria-hidden="true" size={16} />}{active ? 'Lock' : 'Restore'}</button></span>
             </div>
           })}
         </div>
@@ -80,12 +104,12 @@ export function AdminUsersPage({ currentUserId }: { currentUserId: number }) {
         <button className="outline-action" disabled={page + 1 >= totalPages} type="button" onClick={() => setPage((value) => value + 1)}>Next<ChevronRight aria-hidden="true" size={17} /></button>
       </nav>
 
-      {pending && <div className="modal-backdrop">
+      {pending && <div className="modal-backdrop" onKeyDown={handleDialogKeyDown}>
         <section aria-describedby="status-dialog-description" aria-labelledby="status-dialog-title" aria-modal="true" className="confirm-dialog" role="dialog">
           <span className="dialog-icon">{pending.active === false ? <UnlockKeyhole aria-hidden="true" /> : <LockKeyhole aria-hidden="true" />}</span>
           <h2 id="status-dialog-title">{pending.active === false ? 'Restore account access?' : 'Lock this account?'}</h2>
           <p id="status-dialog-description">{pending.active === false ? `${pending.fullName} will be able to sign in again.` : `${pending.fullName} will lose access until an administrator restores the account.`}</p>
-          <div className="dialog-actions"><button autoFocus className="outline-action" type="button" onClick={() => setPending(null)}>Cancel</button><button className={pending.active === false ? 'primary-action' : 'button destructive-action'} type="button" onClick={() => void confirmStatus()}>{pending.active === false ? 'Restore access' : 'Lock account'}</button></div>
+          <div className="dialog-actions"><button autoFocus className="outline-action" type="button" onClick={closeDialog}>Cancel</button><button className={pending.active === false ? 'primary-action' : 'button destructive-action'} type="button" onClick={() => void confirmStatus()}>{pending.active === false ? 'Restore access' : 'Lock account'}</button></div>
         </section>
       </div>}
     </section>

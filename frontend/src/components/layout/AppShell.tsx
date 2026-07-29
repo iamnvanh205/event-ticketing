@@ -59,7 +59,9 @@ const navByRole: Record<AppRole, NavItem[]> = {
 }
 
 function isActive(path: string, href: string) {
-  return path === href || (href !== '/events' && path.startsWith(`${href}/`))
+  if (/^\/organizer\/events\/\d+\/live$/.test(path)) return href === '/organizer/live'
+  const exactOnly = ['/events', '/organizer', '/admin', '/checkin']
+  return path === href || (!exactOnly.includes(href) && path.startsWith(`${href}/`))
 }
 
 function Brand() {
@@ -68,6 +70,21 @@ function Brand() {
       <span className="brand-mark" aria-hidden="true"><Ticket size={18} /></span>
       <span>Event Ticketing</span>
     </a>
+  )
+}
+
+function SiteFooter({ role }: { role: AppRole }) {
+  return (
+    <footer className="site-footer">
+      <div className="site-footer-inner">
+        <div className="footer-brand"><Brand /><p>Discovery, reservations, and entry in one calm experience.</p></div>
+        <nav aria-label="Footer navigation">
+          <div><strong>Explore</strong><a href="/events">Discover events</a><a href="/search">Search</a></div>
+          <div><strong>Account</strong>{role === 'CUSTOMER' ? <><a href="/tickets">My Tickets</a><a href="/account/profile">Profile</a></> : <a href="/auth">Sign in</a>}</div>
+        </nav>
+      </div>
+      <p className="footer-legal">© {new Date().getFullYear()} Event Ticketing</p>
+    </footer>
   )
 }
 
@@ -135,6 +152,7 @@ export function AppShell(props: AppShellProps) {
         <a className="skip-link" href="#main-content">Skip to content</a>
         <Topbar {...props} path={path} />
         <main className="app-main" id="main-content">{props.children}</main>
+        {(props.role === 'GUEST' || props.role === 'CUSTOMER') && <SiteFooter role={props.role} />}
         {attendeeMobileNav && (
           <nav className="mobile-bottom-nav" aria-label="Mobile primary navigation">
             <NavLinks items={[

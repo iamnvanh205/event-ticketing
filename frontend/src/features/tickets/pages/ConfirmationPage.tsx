@@ -5,9 +5,9 @@ import { useTicketContext } from '../hooks/useTicketContext'
 
 export function ConfirmationPage({ ticketId }: { ticketId: number }) {
   const { context, loading, error } = useTicketContext(ticketId)
-  if (loading) return <section className="page"><PageState kind="loading" title="Preparing your ticket" description="Confirming the latest ticket status…" /></section>
-  if (!context || error) return <section className="page"><PageState kind="error" title="Confirmation unavailable" description="Open My Tickets to check the latest status." action={<a className="outline-action" href="/tickets">Open My Tickets</a>} /></section>
-  if (context.ticket.status !== 'CONFIRMED') return <section className="page"><PageState title="This ticket is not confirmed" description="Return to My Tickets for the current reservation status." action={<a className="outline-action" href="/tickets">Open My Tickets</a>} /></section>
+  if (loading) return <section className="page"><PageState headingLevel={1} kind="loading" title="Preparing your ticket" description="Confirming the latest ticket status…" /></section>
+  if (!context || error) return <section className="page"><PageState headingLevel={1} kind="error" title="Confirmation unavailable" description="Open My Tickets to check the latest status." action={<a className="outline-action" href="/tickets">Open My Tickets</a>} /></section>
+  if (context.ticket.status !== 'CONFIRMED') return <section className="page"><PageState headingLevel={1} title="This ticket is not confirmed" description="Return to My Tickets for the current reservation status." action={<a className="outline-action" href="/tickets">Open My Tickets</a>} /></section>
 
   return (
     <section className="page confirmation-page">

@@ -84,7 +84,7 @@ export function CheckInPage({ assignedEventId }: { assignedEventId?: number | nu
   const event = events.find((item) => item.id === eventId)
   const gate = gates.find((item) => item.id === gateId)
 
-  if (!event && error) return <section className="checkin-page"><PageState kind="error" title="Scanner unavailable" description={error} /></section>
+  if (!event && error) return <section className="checkin-page"><PageState headingLevel={1} kind="error" title="Scanner unavailable" description={error} /></section>
 
   return (
     <section className="checkin-page">

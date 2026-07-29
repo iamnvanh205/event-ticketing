@@ -48,13 +48,13 @@ export function EventDetailPage({ eventId, signedIn }: EventDetailPageProps) {
   }
 
   if (loading) {
-    return <section className="page"><PageState kind="loading" title="Loading event" description="Checking event details and current ticket availability…" /></section>
+    return <section className="page"><PageState headingLevel={1} kind="loading" title="Loading event" description="Checking event details and current ticket availability…" /></section>
   }
   if (!event || error && !event) {
-    return <section className="page"><PageState kind="error" title="Could not load event" description="This event could not be opened. It may no longer be available." action={<a className="outline-action" href="/events">Back to events</a>} /></section>
+    return <section className="page"><PageState headingLevel={1} kind="error" title="Could not load event" description="This event could not be opened. It may no longer be available." action={<a className="outline-action" href="/events">Back to events</a>} /></section>
   }
   if (event.status !== 'PUBLISHED') {
-    return <section className="page"><PageState title="This event is not available" description="The organizer has not published this event for attendees." action={<a className="outline-action" href="/events">Browse events</a>} /></section>
+    return <section className="page"><PageState headingLevel={1} title="This event is not available" description="The organizer has not published this event for attendees." action={<a className="outline-action" href="/events">Browse events</a>} /></section>
   }
 
   return (
