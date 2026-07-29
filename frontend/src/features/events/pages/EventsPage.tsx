@@ -42,7 +42,6 @@ export function EventsPage() {
       <a className="discover-search" href="/search">
         <Search aria-hidden="true" size={20} />
         <span>Search by event or location</span>
-        <kbd>/</kbd>
       </a>
       {loading && (
         <>

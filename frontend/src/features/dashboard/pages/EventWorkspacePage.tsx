@@ -54,6 +54,12 @@ export function EventWorkspacePage({ eventId, section = 'overview' }: { eventId?
     void load()
   }, [load])
 
+  useEffect(() => {
+    if (!notice) return
+    const timer = window.setTimeout(() => setNotice(''), 4000)
+    return () => window.clearTimeout(timer)
+  }, [notice])
+
   if (loading) return <section className="page"><PageState headingLevel={1} kind="loading" title="Loading event workspace" description="Fetching details, tickets, gates, and staff." /></section>
   if (eventId && error && !event) return <section className="page"><PageState headingLevel={1} kind="error" title="Could not open event" description={error} action={<a className="outline-action" href="/organizer/events">Back to events</a>} /></section>
 
@@ -90,9 +96,9 @@ export function EventWorkspacePage({ eventId, section = 'overview' }: { eventId?
             if (!eventId) navigate(`/organizer/events/${saved.id}/tickets`)
           }} onError={setError} />}
           {eventId && activeSection === 'overview' && <WorkspaceOverview item={event!} tickets={ticketTypes} gates={gates} staff={staff} />}
-          {eventId && activeSection === 'tickets' && <TicketSection eventId={eventId} items={ticketTypes} onCreated={load} onError={setError} />}
-          {eventId && activeSection === 'gates' && <GateSection eventId={eventId} items={gates} onCreated={load} onError={setError} />}
-          {eventId && activeSection === 'staff' && <StaffSection eventId={eventId} items={staff} onCreated={load} onError={setError} />}
+          {eventId && activeSection === 'tickets' && <TicketSection eventId={eventId} items={ticketTypes} onCreated={() => { load(); setNotice('Ticket type added') }} onError={setError} />}
+          {eventId && activeSection === 'gates' && <GateSection eventId={eventId} items={gates} onCreated={() => { load(); setNotice('Admission gate added') }} onError={setError} />}
+          {eventId && activeSection === 'staff' && <StaffSection eventId={eventId} items={staff} onCreated={() => { load(); setNotice('Staff member added') }} onError={setError} />}
           {eventId && activeSection === 'publishing' && <PublishingSection item={event!} tickets={ticketTypes} gates={gates} />}
         </div>
         <aside className="workspace-aside">

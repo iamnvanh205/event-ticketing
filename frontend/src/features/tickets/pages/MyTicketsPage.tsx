@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CalendarDays, Clock3, MapPin, QrCode, Ticket as TicketIcon, X } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
+import { toast } from 'sonner'
 import { PageTitle } from '../../../components/layout/PageTitle'
 import { PageState } from '../../../components/ui/feedback'
 import { dateOnly, timeOnly } from '../../../lib/format'
@@ -54,6 +55,7 @@ export function MyTicketsPage() {
     try {
       await cancelTicket(ticketId)
       await load()
+      toast.success('Reservation cancelled')
     } catch {
       setActionError('Ticket action failed. The reservation may have already changed.')
     } finally {
