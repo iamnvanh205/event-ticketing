@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { EventDetailPage } from './EventDetailPage'
@@ -9,10 +9,6 @@ import * as navigation from '../../../routes/navigation'
 vi.mock('../api/eventApi')
 vi.mock('../../tickets/api/ticketApi')
 vi.mock('../../../routes/navigation', () => ({ navigate: vi.fn() }))
-// QRCodeSVG renders a real SVG — keep it in tests
-vi.mock('qrcode.react', () => ({
-  QRCodeSVG: ({ title }: { title: string }) => <svg data-testid="qr-code" aria-label={title} />,
-}))
 
 const mockEvent = {
   id: 1,
@@ -32,13 +28,17 @@ const mockTicketTypes = [
   { id: 11, eventId: 1, name: 'VIP', price: 500000, quantityTotal: 20, quantityRemaining: 0, salesStartAt: '', salesEndAt: '' },
 ]
 
-const makeReserved = (status: import('../../tickets/types').TicketStatus = 'RESERVED') => ({
-  id: 99, ticketTypeId: 10, status, quantity: 1,
-  qrCode: status === 'CONFIRMED' ? 'qr-code-value' : null,
-  expiresAt: '2026-08-01T09:15:00Z', reservedAt: '2026-08-01T09:00:00Z',
-  confirmedAt: status === 'CONFIRMED' ? '2026-08-01T09:05:00Z' : null,
+const reservedTicket = {
+  id: 99,
+  ticketTypeId: 10,
+  status: 'RESERVED' as const,
+  quantity: 1,
+  qrCode: null,
+  expiresAt: '2026-08-01T09:15:00Z',
+  reservedAt: '2026-08-01T09:00:00Z',
+  confirmedAt: null,
   checkedInAt: null,
-})
+}
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -47,110 +47,60 @@ beforeEach(() => {
 })
 
 describe('EventDetailPage', () => {
-  it('shows loading message before data arrives', () => {
+  it('shows loading state before data arrives', () => {
     vi.mocked(eventApi.getEvent).mockReturnValue(new Promise(() => {}))
     vi.mocked(eventApi.listTicketTypes).mockReturnValue(new Promise(() => {}))
     render(<EventDetailPage eventId={1} signedIn />)
     expect(screen.getByText(/loading event/i)).toBeInTheDocument()
   })
 
-  it('renders event name and location after load', async () => {
+  it('renders event details and ticket choices', async () => {
     render(<EventDetailPage eventId={1} signedIn />)
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Summer Festival' })).toBeInTheDocument()
-      expect(screen.getByText('Hanoi')).toBeInTheDocument()
-    })
+
+    expect(await screen.findByRole('heading', { name: 'Summer Festival' })).toBeInTheDocument()
+    expect(screen.getByText('Hanoi')).toBeInTheDocument()
+    expect(screen.getByText('Standard')).toBeInTheDocument()
+    expect(screen.getByText('VIP')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /sold out/i })).toBeDisabled()
   })
 
-  it('renders ticket type names and prices', async () => {
-    render(<EventDetailPage eventId={1} signedIn />)
-    await waitFor(() => {
-      expect(screen.getByText('Standard')).toBeInTheDocument()
-      expect(screen.getByText('VIP')).toBeInTheDocument()
-    })
-  })
-
-  it('disables Reserve button when quantityRemaining is 0', async () => {
-    render(<EventDetailPage eventId={1} signedIn />)
-    await waitFor(() => screen.getByText('VIP'))
-
-    const vipButton = screen.getByRole('button', { name: /sold out/i })
-    expect(vipButton).toBeDisabled()
-  })
-
-  it('redirects to /auth when not signed in and Reserve is clicked', async () => {
+  it('redirects guests to authentication before reserving', async () => {
     const user = userEvent.setup()
     render(<EventDetailPage eventId={1} signedIn={false} />)
-    await waitFor(() => screen.getByText('Standard'))
+    await screen.findByText('Standard')
 
-    const [reserveStandard] = screen.getAllByRole('button', { name: /reserve/i })
-    await user.click(reserveStandard)
-
-    expect(vi.mocked(navigation.navigate)).toHaveBeenCalledWith('/auth')
+    await user.click(screen.getAllByRole('button', { name: /reserve/i })[0])
+    expect(navigation.navigate).toHaveBeenCalledWith('/auth')
   })
 
-  it('shows reserved box after successful reservation', async () => {
+  it('opens checkout after a successful reservation', async () => {
     const user = userEvent.setup()
-    vi.mocked(ticketApi.reserveTicket).mockResolvedValue(makeReserved())
+    vi.mocked(ticketApi.reserveTicket).mockResolvedValue(reservedTicket)
     render(<EventDetailPage eventId={1} signedIn />)
-    await waitFor(() => screen.getByText('Standard'))
+    await screen.findByText('Standard')
 
-    const [reserveBtn] = screen.getAllByRole('button', { name: /reserve/i })
-    await user.click(reserveBtn)
+    await user.click(screen.getAllByRole('button', { name: /reserve/i })[0])
 
     await waitFor(() => {
-      expect(screen.getByText(/reservation #99/i)).toBeInTheDocument()
-      expect(screen.getByText('RESERVED')).toBeInTheDocument()
+      expect(ticketApi.reserveTicket).toHaveBeenCalledWith(10, 1)
+      expect(navigation.navigate).toHaveBeenCalledWith('/checkout/99')
     })
   })
 
-  it('shows Confirm button when ticket is RESERVED', async () => {
-    const user = userEvent.setup()
-    vi.mocked(ticketApi.reserveTicket).mockResolvedValue(makeReserved('RESERVED'))
-    render(<EventDetailPage eventId={1} signedIn />)
-    await waitFor(() => screen.getByText('Standard'))
-
-    await user.click(screen.getAllByRole('button', { name: /reserve/i })[0])
-    await waitFor(() => screen.getByText('RESERVED'))
-
-    expect(screen.getByRole('button', { name: /confirm/i })).toBeInTheDocument()
-  })
-
-  it('shows QR code after confirming reservation', async () => {
-    const user = userEvent.setup()
-    vi.mocked(ticketApi.reserveTicket).mockResolvedValue(makeReserved('RESERVED'))
-    vi.mocked(ticketApi.confirmTicket).mockResolvedValue(makeReserved('CONFIRMED'))
-    render(<EventDetailPage eventId={1} signedIn />)
-    await waitFor(() => screen.getByText('Standard'))
-
-    await user.click(screen.getAllByRole('button', { name: /reserve/i })[0])
-    await waitFor(() => screen.getByRole('button', { name: /confirm/i }))
-    await user.click(screen.getByRole('button', { name: /confirm/i }))
-
-    await waitFor(() => {
-      expect(screen.getByTestId('qr-code')).toBeInTheDocument()
-    })
-  })
-
-  it('shows error message when reservation fails', async () => {
+  it('shows an error when reservation fails', async () => {
     const user = userEvent.setup()
     vi.mocked(ticketApi.reserveTicket).mockRejectedValue(new Error('Sold out'))
     render(<EventDetailPage eventId={1} signedIn />)
-    await waitFor(() => screen.getByText('Standard'))
+    await screen.findByText('Standard')
 
     await user.click(screen.getAllByRole('button', { name: /reserve/i })[0])
-
-    await waitFor(() => {
-      expect(screen.getByText(/could not reserve/i)).toBeInTheDocument()
-    })
+    expect(await screen.findByText(/could not reserve/i)).toBeInTheDocument()
   })
 
-  it('shows error message when event fails to load', async () => {
+  it('shows an error when the event fails to load', async () => {
     vi.mocked(eventApi.getEvent).mockRejectedValue(new Error('Not found'))
     render(<EventDetailPage eventId={999} signedIn />)
 
-    await waitFor(() => {
-      expect(screen.getByText(/could not load event/i)).toBeInTheDocument()
-    })
+    expect(await screen.findByText(/could not load event/i)).toBeInTheDocument()
   })
 })

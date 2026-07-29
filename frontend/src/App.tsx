@@ -13,6 +13,10 @@ import { EventsPage } from './features/events/pages/EventsPage'
 import { LandingPage } from './features/events/pages/LandingPage'
 import { SearchPage } from './features/events/pages/SearchPage'
 import { MyTicketsPage } from './features/tickets/pages/MyTicketsPage'
+import { CheckoutPage } from './features/tickets/pages/CheckoutPage'
+import { ConfirmationPage } from './features/tickets/pages/ConfirmationPage'
+import { PaymentPage } from './features/tickets/pages/PaymentPage'
+import { TicketDetailPage } from './features/tickets/pages/TicketDetailPage'
 import { navigate, usePath } from './routes/navigation'
 import './App.css'
 
@@ -68,6 +72,22 @@ function App() {
   } else if (path === '/tickets') {
     content = user?.role === 'CUSTOMER'
       ? <MyTicketsPage />
+      : <SystemStatePage kind="forbidden" homeHref={homeForRole(user?.role)} />
+  } else if (/^\/tickets\/\d+$/.test(path)) {
+    content = user?.role === 'CUSTOMER'
+      ? <TicketDetailPage ticketId={Number(path.split('/')[2])} />
+      : <SystemStatePage kind="forbidden" homeHref={homeForRole(user?.role)} />
+  } else if (/^\/checkout\/\d+$/.test(path)) {
+    content = user?.role === 'CUSTOMER'
+      ? <CheckoutPage ticketId={Number(path.split('/')[2])} user={user} />
+      : <SystemStatePage kind="forbidden" homeHref={homeForRole(user?.role)} />
+  } else if (/^\/checkout\/\d+\/payment$/.test(path)) {
+    content = user?.role === 'CUSTOMER'
+      ? <PaymentPage />
+      : <SystemStatePage kind="forbidden" homeHref={homeForRole(user?.role)} />
+  } else if (/^\/orders\/\d+\/confirmation$/.test(path)) {
+    content = user?.role === 'CUSTOMER'
+      ? <ConfirmationPage ticketId={Number(path.split('/')[2])} />
       : <SystemStatePage kind="forbidden" homeHref={homeForRole(user?.role)} />
   } else if (path === '/checkin') {
     content = user?.role === 'CHECKIN_STAFF'

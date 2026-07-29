@@ -23,3 +23,8 @@ export async function listMyTickets() {
   const { data } = await apiClient.get<TicketItem[]>('/tickets/my')
   return data
 }
+
+export async function getTicket(ticketId: number) {
+  const { data } = await apiClient.get<TicketItem>(`/tickets/${ticketId}`)
+  return data
+}

@@ -36,6 +36,11 @@ export async function createTicketType(eventId: number, request: TicketTypeReque
   return data
 }
 
+export async function getTicketType(id: number) {
+  const { data } = await apiClient.get<TicketTypeItem>(`/ticket-types/${id}`)
+  return data
+}
+
 export async function listGates(eventId: number) {
   const { data } = await apiClient.get<GateItem[]>(`/events/${eventId}/gates`)
   return data
