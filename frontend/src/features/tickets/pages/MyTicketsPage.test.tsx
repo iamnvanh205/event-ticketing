@@ -126,7 +126,7 @@ describe('MyTicketsPage', () => {
     expect(screen.getByText('Ready for entry')).toBeInTheDocument()
     expect(screen.queryByText('Checked in')).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('tab', { name: /past & inactive/i }))
+    await user.click(screen.getByRole('button', { name: /past & inactive/i }))
     expect(screen.getByText('Checked in')).toBeInTheDocument()
     expect(screen.getByText('Expired')).toBeInTheDocument()
     expect(screen.getByText('Cancelled')).toBeInTheDocument()

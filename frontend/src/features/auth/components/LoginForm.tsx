@@ -13,6 +13,11 @@ export function LoginForm() {
   const [error, setError] = useState('')
   const { login, register, loading } = useAuth()
 
+  function selectMode(nextMode: 'login' | 'register') {
+    setMode(nextMode)
+    setError('')
+  }
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
@@ -35,9 +40,9 @@ export function LoginForm() {
           <h2>{mode === 'login' ? 'Sign in' : 'Create account'}</h2>
           <p className="auth-intro">{mode === 'login' ? 'Continue to your tickets or workspace.' : 'Create a customer account in less than a minute.'}</p>
         </div>
-        <div className="mode-switch" aria-label="Authentication mode">
-          <button type="button" aria-pressed={mode === 'login'} className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')}>Sign in</button>
-          <button type="button" aria-pressed={mode === 'register'} className={mode === 'register' ? 'active' : ''} onClick={() => setMode('register')}>Register</button>
+        <div className="mode-switch" role="group" aria-label="Authentication mode">
+          <button type="button" aria-pressed={mode === 'login'} className={mode === 'login' ? 'active' : ''} onClick={() => selectMode('login')}>Sign in</button>
+          <button type="button" aria-pressed={mode === 'register'} className={mode === 'register' ? 'active' : ''} onClick={() => selectMode('register')}>Register</button>
         </div>
       </div>
 

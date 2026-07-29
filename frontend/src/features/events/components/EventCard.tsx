@@ -1,14 +1,15 @@
 import { ArrowUpRight, CalendarDays, MapPin } from 'lucide-react'
 import { dateOnly } from '../../../lib/format'
-import { navigate } from '../../../routes/navigation'
 import type { EventItem } from '../types'
 
-export function EventCard({ event }: { event: EventItem }) {
+export function EventCard({ event, headingLevel = 2 }: { event: EventItem; headingLevel?: 2 | 3 }) {
+  const Heading = headingLevel === 3 ? 'h3' : 'h2'
+
   return (
     <article className="event-card interactive-surface">
       <div className="event-card-media">
         {event.bannerUrl
-          ? <img alt={`${event.name} banner`} src={event.bannerUrl} />
+          ? <img alt={`${event.name} banner`} decoding="async" loading="lazy" src={event.bannerUrl} />
           : <div className="banner-fallback" role="img" aria-label={`${event.name} event artwork`} />}
         <span className="event-date-tile" aria-hidden="true">
           <strong>{new Date(event.startTime).toLocaleDateString('en', { day: '2-digit' })}</strong>
@@ -17,15 +18,15 @@ export function EventCard({ event }: { event: EventItem }) {
       </div>
       <div className="event-card-body">
         <span className="status published">Published</span>
-        <h2>{event.name}</h2>
+        <Heading>{event.name}</Heading>
         <p className="event-card-description">{event.description ?? 'Event details will be announced soon.'}</p>
         <dl className="event-meta">
           <div><CalendarDays aria-hidden="true" size={16} /><dt className="sr-only">Date</dt><dd>{dateOnly.format(new Date(event.startTime))}</dd></div>
           <div><MapPin aria-hidden="true" size={16} /><dt className="sr-only">Location</dt><dd>{event.location}</dd></div>
         </dl>
-        <button className="event-card-link" type="button" onClick={() => navigate(`/events/${event.id}`)}>
+        <a className="event-card-link" href={`/events/${event.id}`}>
           View tickets <ArrowUpRight aria-hidden="true" size={17} />
-        </button>
+        </a>
       </div>
     </article>
   )

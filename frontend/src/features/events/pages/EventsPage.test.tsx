@@ -1,15 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { EventsPage } from './EventsPage'
 import * as eventApi from '../api/eventApi'
-import * as navigation from '../../../routes/navigation'
 
 vi.mock('../api/eventApi')
-vi.mock('../../../routes/navigation', () => ({
-  navigate: vi.fn(),
-  usePath: vi.fn(() => '/events'),
-}))
 
 const makeEvent = (id: number, overrides = {}) => ({
   id,
@@ -73,15 +67,12 @@ describe('EventsPage', () => {
     })
   })
 
-  it('navigates to event detail when "View tickets" is clicked', async () => {
-    const user = userEvent.setup()
+  it('links each event to its detail page', async () => {
     vi.mocked(eventApi.listEvents).mockResolvedValue([makeEvent(42)])
     render(<EventsPage />)
 
     await waitFor(() => screen.getByText('Event 42'))
-    await user.click(screen.getByRole('button', { name: /view tickets/i }))
-
-    expect(vi.mocked(navigation.navigate)).toHaveBeenCalledWith('/events/42')
+    expect(screen.getByRole('link', { name: /view tickets/i })).toHaveAttribute('href', '/events/42')
   })
 
   it('renders banner image when bannerUrl is present', async () => {

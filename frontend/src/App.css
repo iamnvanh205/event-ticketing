@@ -28,6 +28,10 @@
   min-width: 0;
 }
 
+#main-content:focus {
+  outline: 0;
+}
+
 .app-frame.has-sidebar {
   display: grid;
   grid-template-columns: 16rem minmax(0, 1fr);
@@ -338,10 +342,12 @@
     translate var(--duration-standard) var(--ease-standard);
 }
 
-.interactive-surface:hover {
-  translate: 0 -2px;
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-1);
+@media (hover: hover) {
+  .interactive-surface:hover {
+    translate: 0 -2px;
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-1);
+  }
 }
 
 .button,
@@ -1030,7 +1036,7 @@ textarea {
 
 .search-toolbar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--space-3);
 }
 
@@ -1451,7 +1457,7 @@ textarea {
 }
 
 .ticket-tabs button {
-  min-height: 2.5rem;
+  min-height: var(--control-height);
   border: 0;
   border-radius: var(--radius-s);
   padding: 0 var(--space-4);
@@ -2127,7 +2133,7 @@ textarea {
   height: 100%;
   border-radius: inherit;
   background: var(--primary);
-  transition: width var(--duration-slow) var(--ease-decelerate);
+  transition: width var(--duration-standard) var(--ease-standard);
 }
 
 .owned-events-section {
@@ -2213,7 +2219,7 @@ textarea {
 }
 
 .status-tabs button {
-  min-height: 2.5rem;
+  min-height: var(--control-height);
   border: 0;
   border-radius: var(--radius-s);
   padding: 0 var(--space-3);
@@ -3026,7 +3032,7 @@ textarea {
   padding: var(--space-4);
   background: color-mix(in srgb, var(--neutral-950) 58%, transparent);
   backdrop-filter: blur(4px);
-  animation: fade-in var(--duration-standard) var(--ease-decelerate);
+  animation: fade-in var(--duration-standard) var(--ease-enter);
 }
 
 .confirm-dialog {
@@ -3038,7 +3044,7 @@ textarea {
   padding: var(--space-6);
   background: var(--card);
   box-shadow: var(--shadow-4);
-  animation: dialog-in var(--duration-standard) var(--ease-decelerate);
+  animation: dialog-in var(--duration-standard) var(--ease-enter);
 }
 
 .dialog-icon {
@@ -3384,8 +3390,7 @@ input:read-only {
     padding: var(--space-8) var(--space-6);
   }
 
-  .discover-search kbd,
-  .filter-placeholder {
+  .discover-search kbd {
     display: none;
   }
 

@@ -99,7 +99,6 @@ export function CheckoutPage({ ticketId, user }: { ticketId: number; user: AuthU
               <p>Confirming issues the ticket immediately using the existing reservation workflow.</p>
             </div>
           </section>
-          {actionError && <p className="form-error" role="alert">{actionError}</p>}
         </div>
 
         <aside className="order-summary">
@@ -112,6 +111,8 @@ export function CheckoutPage({ ticketId, user }: { ticketId: number; user: AuthU
           </dl>
           <div className="summary-price"><span>{ticket.quantity} × {ticketType.name}</span><strong>{money.format(ticketType.price * ticket.quantity)}</strong></div>
           <div className="summary-total"><span>Total</span><strong>{money.format(ticketType.price * ticket.quantity)}</strong></div>
+          {actionError && <p className="form-error" role="alert">{actionError}</p>}
+          {expired && <p className="inline-note">This hold has ended. <a href={`/events/${event.id}`}>Return to the event</a> to check current availability.</p>}
           <button className="primary-action" disabled={busy || expired} type="button" onClick={() => void confirm()} aria-busy={busy}>
             {busy ? <LoaderCircle className="animate-spin" aria-hidden="true" size={18} /> : <CheckCircle2 aria-hidden="true" size={18} />}
             {expired ? 'Reservation expired' : 'Confirm ticket'}

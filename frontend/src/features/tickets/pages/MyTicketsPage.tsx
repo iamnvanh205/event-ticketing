@@ -24,7 +24,7 @@ export function MyTicketsPage() {
   const [actionError, setActionError] = useState('')
   const [busyId, setBusyId] = useState<number | null>(null)
 
-  const load = useCallback(() => {
+  const load = useCallback(() => (
     listMyTickets()
       .then(async (items) => {
         setError('')
@@ -42,7 +42,7 @@ export function MyTicketsPage() {
       })
       .catch(() => setError('Could not load tickets.'))
       .finally(() => setLoading(false))
-  }, [])
+  ), [])
 
   useEffect(() => {
     void load()
@@ -53,7 +53,7 @@ export function MyTicketsPage() {
     setActionError('')
     try {
       await cancelTicket(ticketId)
-      load()
+      await load()
     } catch {
       setActionError('Ticket action failed. The reservation may have already changed.')
     } finally {
@@ -69,6 +69,12 @@ export function MyTicketsPage() {
 
   const nextTicket = visibleTickets.find((ticket) => ticket.status === 'CONFIRMED')
 
+  function retry() {
+    setLoading(true)
+    setError('')
+    void load()
+  }
+
   return (
     <section className="page tickets-page">
       <PageTitle
@@ -77,13 +83,13 @@ export function MyTicketsPage() {
         description="Your active reservations and entry passes, in one place."
         action={<span className="result-count">{tickets.length} total</span>}
       />
-      <div className="ticket-tabs" role="tablist" aria-label="Ticket history">
-        <button aria-selected={view === 'upcoming'} className={view === 'upcoming' ? 'active' : ''} role="tab" type="button" onClick={() => setView('upcoming')}>Upcoming</button>
-        <button aria-selected={view === 'past'} className={view === 'past' ? 'active' : ''} role="tab" type="button" onClick={() => setView('past')}>Past & inactive</button>
+      <div className="ticket-tabs" role="group" aria-label="Filter ticket history">
+        <button aria-pressed={view === 'upcoming'} className={view === 'upcoming' ? 'active' : ''} type="button" onClick={() => setView('upcoming')}>Upcoming</button>
+        <button aria-pressed={view === 'past'} className={view === 'past' ? 'active' : ''} type="button" onClick={() => setView('past')}>Past & inactive</button>
       </div>
       {actionError && <p className="inline-error" role="alert">{actionError}</p>}
-      {loading && <div className="ticket-wallet-grid" aria-label="Loading tickets">{Array.from({ length: 3 }, (_, index) => <span className="skeleton ticket-card-skeleton" key={index} />)}</div>}
-      {error && <PageState kind="error" title="Could not load tickets" description="Your ticket wallet is temporarily unavailable." action={<button className="outline-action" type="button" onClick={load}>Try again</button>} />}
+      {loading && <div className="ticket-wallet-grid" aria-busy="true" aria-label="Loading tickets">{Array.from({ length: 3 }, (_, index) => <span className="skeleton ticket-card-skeleton" key={index} />)}</div>}
+      {error && <PageState kind="error" title="Could not load tickets" description="Your ticket wallet is temporarily unavailable." action={<button className="outline-action" type="button" onClick={retry}>Try again</button>} />}
       {!loading && !error && visibleTickets.length === 0 && (
         <PageState
           title={view === 'upcoming' ? 'No upcoming tickets' : 'No ticket history yet'}

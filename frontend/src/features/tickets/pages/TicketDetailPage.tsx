@@ -15,8 +15,12 @@ export function TicketDetailPage({ ticketId }: { ticketId: number }) {
   const canEnter = ticket.status === 'CONFIRMED' && ticket.qrCode
 
   async function copyReference() {
-    await navigator.clipboard.writeText(String(ticket.id))
-    toast.success('Ticket reference copied')
+    try {
+      await navigator.clipboard.writeText(String(ticket.id))
+      toast.success('Ticket reference copied')
+    } catch {
+      toast.error('Could not copy the ticket reference')
+    }
   }
 
   return (

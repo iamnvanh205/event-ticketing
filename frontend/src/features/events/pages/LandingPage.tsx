@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { ArrowRight, CalendarCheck, ScanLine, ShieldCheck } from 'lucide-react'
 import { PageState } from '../../../components/ui/feedback'
+import { navigate } from '../../../routes/navigation'
 import { EventCard, EventCardSkeleton } from '../components/EventCard'
 import { listEvents } from '../api/eventApi'
 import type { EventItem } from '../types'
@@ -17,6 +18,12 @@ export function LandingPage() {
       .finally(() => setLoading(false))
   }, [])
 
+  function search(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const query = String(new FormData(event.currentTarget).get('q') ?? '').trim()
+    navigate(query ? `/search?q=${encodeURIComponent(query)}` : '/search')
+  }
+
   return (
     <>
       <section className="landing-hero">
@@ -24,7 +31,7 @@ export function LandingPage() {
           <p className="eyebrow">Events, without the friction</p>
           <h1>Find the room where it happens.</h1>
           <p>Discover thoughtful events, reserve in minutes, and keep every ticket ready when the doors open.</p>
-          <form className="hero-search" action="/search" method="get" role="search">
+          <form className="hero-search" role="search" onSubmit={search}>
             <label className="sr-only" htmlFor="landing-search">Search events</label>
             <input id="landing-search" name="q" placeholder="Search by event or location" type="search" />
             <button className="primary-action" type="submit">Explore events <ArrowRight aria-hidden="true" size={18} /></button>
@@ -56,7 +63,8 @@ export function LandingPage() {
         </header>
         {loading && <div className="event-grid">{Array.from({ length: 4 }, (_, index) => <EventCardSkeleton key={index} />)}</div>}
         {error && <PageState kind="error" title="Events are taking longer than expected" description="You can still open the complete event list and try again." action={<a className="outline-action" href="/events">Browse events</a>} />}
-        {!loading && !error && <div className="event-grid">{events.map((event) => <EventCard event={event} key={event.id} />)}</div>}
+        {!loading && !error && events.length === 0 && <PageState title="No published events yet" description="New events will appear here as soon as organizers publish them." />}
+        {!loading && !error && events.length > 0 && <div className="event-grid">{events.map((event) => <EventCard event={event} headingLevel={3} key={event.id} />)}</div>}
       </section>
 
       <section className="organizer-callout">
