@@ -5,6 +5,8 @@ export interface AuthUser {
   email: string
   role: Role
   fullName: string
+  assignedEventId?: number | null
+  active?: boolean
 }
 
 export interface LoginRequest {

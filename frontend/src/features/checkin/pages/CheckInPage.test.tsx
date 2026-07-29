@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { CheckInPage } from './CheckInPage'
@@ -7,13 +7,8 @@ import * as checkinApi from '../api/checkinApi'
 
 vi.mock('../../events/api/eventApi')
 vi.mock('../api/checkinApi')
-// QrScanner uses html5-qrcode which requires a real camera; mock it
 vi.mock('../components/QrScanner', () => ({
-  QrScanner: ({ onScan }: { onScan: (code: string) => void }) => (
-    <button data-testid="mock-scanner" onClick={() => onScan('scanned-qr-code')}>
-      Simulate scan
-    </button>
-  ),
+  QrScanner: ({ onScan }: { onScan: (code: string) => void }) => <button data-testid="mock-scanner" onClick={() => onScan('scanned-qr-code')}>Simulate scan</button>,
 }))
 
 const mockEvents = [
@@ -26,7 +21,7 @@ const mockGates = [
   { id: 102, eventId: 1, name: 'Gate B' },
 ]
 
-const mockCheckInResult = {
+const mockResult = {
   ticketId: 99,
   status: 'CHECKED_IN',
   checkedInAt: '2026-08-01T10:30:00Z',
@@ -35,130 +30,105 @@ const mockCheckInResult = {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  sessionStorage.clear()
   vi.mocked(eventApi.listEvents).mockResolvedValue(mockEvents)
+  vi.mocked(eventApi.getEvent).mockResolvedValue(mockEvents[0])
   vi.mocked(eventApi.listGates).mockResolvedValue(mockGates)
 })
 
 describe('CheckInPage', () => {
-  it('renders event and gate selects after loading', async () => {
+  it('loads event and gate context', async () => {
     render(<CheckInPage />)
 
-    await waitFor(() => {
-      expect(screen.getByDisplayValue('Event Alpha')).toBeInTheDocument()
-      expect(screen.getByDisplayValue('Gate A')).toBeInTheDocument()
-    })
+    expect(await screen.findByRole('heading', { name: 'Event Alpha' })).toBeInTheDocument()
+    expect(await screen.findByDisplayValue('Gate A')).toBeInTheDocument()
   })
 
-  it('renders QR manual input form', async () => {
-    render(<CheckInPage />)
-    await waitFor(() => screen.getByDisplayValue('Event Alpha'))
+  it('uses only the assigned event when assignment is available', async () => {
+    render(<CheckInPage assignedEventId={1} />)
 
-    expect(screen.getByLabelText(/qr code/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /check in/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Event Alpha' })).toBeInTheDocument()
+    expect(eventApi.getEvent).toHaveBeenCalledWith(1)
+    expect(eventApi.listEvents).not.toHaveBeenCalled()
+    expect(screen.queryByRole('combobox', { name: 'Event' })).not.toBeInTheDocument()
   })
 
-  it('shows success result after successful manual check-in', async () => {
+  it('validates a manually entered code and clears it on success', async () => {
     const user = userEvent.setup()
-    vi.mocked(checkinApi.checkIn).mockResolvedValue(mockCheckInResult)
+    vi.mocked(checkinApi.checkIn).mockResolvedValue(mockResult)
     render(<CheckInPage />)
-    await waitFor(() => screen.getByDisplayValue('Gate A'))
+    await screen.findByDisplayValue('Gate A')
 
-    await user.type(screen.getByLabelText(/qr code/i), 'some-qr-code')
-    await user.click(screen.getByRole('button', { name: /check in/i }))
-
-    await waitFor(() => {
-      expect(screen.getByText(/check-in successful/i)).toBeInTheDocument()
-      expect(screen.getByText(/ticket #99/i)).toBeInTheDocument()
-      expect(screen.getByText(/gate #101/i)).toBeInTheDocument()
-    })
-  })
-
-  it('shows error result when check-in fails', async () => {
-    const user = userEvent.setup()
-    vi.mocked(checkinApi.checkIn).mockRejectedValue(new Error('Duplicate'))
-    render(<CheckInPage />)
-    await waitFor(() => screen.getByDisplayValue('Gate A'))
-
-    await user.type(screen.getByLabelText(/qr code/i), 'duplicate-qr')
-    await user.click(screen.getByRole('button', { name: /check in/i }))
-
-    await waitFor(() => {
-      // The error section has class="checkin-result error"
-      const errorSection = document.querySelector('.checkin-result.error')
-      expect(errorSection).not.toBeNull()
-      expect(errorSection).toHaveTextContent(/check-in failed/i)
-    })
-  })
-
-  it('clears QR input after successful check-in', async () => {
-    const user = userEvent.setup()
-    vi.mocked(checkinApi.checkIn).mockResolvedValue(mockCheckInResult)
-    render(<CheckInPage />)
-    await waitFor(() => screen.getByDisplayValue('Gate A'))
-
-    const input = screen.getByLabelText(/qr code/i)
+    const input = screen.getByLabelText(/ticket or qr code/i)
     await user.type(input, 'some-qr-code')
-    await user.click(screen.getByRole('button', { name: /check in/i }))
+    await user.click(screen.getByRole('button', { name: /validate ticket/i }))
 
-    await waitFor(() => {
-      expect(input).toHaveValue('')
+    expect(await screen.findByRole('heading', { name: /ticket accepted/i })).toBeInTheDocument()
+    expect(screen.getByText('#99')).toBeInTheDocument()
+    expect(input).toHaveValue('')
+    expect(screen.getByText(/1 admitted this session/i)).toBeInTheDocument()
+  })
+
+  it('preserves the code and explains a duplicate check-in', async () => {
+    const user = userEvent.setup()
+    vi.mocked(checkinApi.checkIn).mockRejectedValue({
+      response: { status: 409, data: { errorCode: 'TICKET_ALREADY_CHECKED_IN' } },
     })
+    render(<CheckInPage />)
+    await screen.findByDisplayValue('Gate A')
+
+    const input = screen.getByLabelText(/ticket or qr code/i)
+    await user.type(input, 'duplicate-qr')
+    await user.click(screen.getByRole('button', { name: /validate ticket/i }))
+
+    expect(await screen.findByRole('heading', { name: /ticket not accepted/i })).toBeInTheDocument()
+    expect(screen.getByText(/already been checked in/i)).toBeInTheDocument()
+    expect(input).toHaveValue('duplicate-qr')
   })
 
-  it('does not submit when QR input is empty', async () => {
-    const user = userEvent.setup()
+  it('disables manual validation until a code is entered', async () => {
     render(<CheckInPage />)
-    await waitFor(() => screen.getByDisplayValue('Gate A'))
+    await screen.findByDisplayValue('Gate A')
 
-    await user.click(screen.getByRole('button', { name: /check in/i }))
-
-    expect(vi.mocked(checkinApi.checkIn)).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: /validate ticket/i })).toBeDisabled()
+    expect(checkinApi.checkIn).not.toHaveBeenCalled()
   })
 
-  it('calls checkIn with correct gateId when gate is selected', async () => {
+  it('uses the selected gate and remembers it', async () => {
     const user = userEvent.setup()
-    vi.mocked(checkinApi.checkIn).mockResolvedValue(mockCheckInResult)
+    vi.mocked(checkinApi.checkIn).mockResolvedValue({ ...mockResult, gateId: 102 })
     render(<CheckInPage />)
-    await waitFor(() => screen.getByDisplayValue('Gate A'))
+    await screen.findByDisplayValue('Gate A')
 
-    // Gate select is the second combobox (after event select)
-    const [, gateSelect] = screen.getAllByRole('combobox')
-    await user.selectOptions(gateSelect, '102')
-    await user.type(screen.getByLabelText(/qr code/i), 'qr-xyz')
-    await user.click(screen.getByRole('button', { name: /check in/i }))
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Gate' }), '102')
+    await user.type(screen.getByLabelText(/ticket or qr code/i), 'qr-xyz')
+    await user.click(screen.getByRole('button', { name: /validate ticket/i }))
 
-    await waitFor(() => {
-      expect(vi.mocked(checkinApi.checkIn)).toHaveBeenCalledWith('qr-xyz', 102)
-    })
+    await waitFor(() => expect(checkinApi.checkIn).toHaveBeenCalledWith('qr-xyz', 102))
+    expect(sessionStorage.getItem('checkin-gate-1')).toBe('102')
   })
 
-  it('triggers check-in when QR Scanner fires a scan', async () => {
+  it('validates a camera scan through the same flow', async () => {
     const user = userEvent.setup()
-    vi.mocked(checkinApi.checkIn).mockResolvedValue(mockCheckInResult)
+    vi.mocked(checkinApi.checkIn).mockResolvedValue(mockResult)
     render(<CheckInPage />)
-    await waitFor(() => screen.getByDisplayValue('Gate A'))
+    await screen.findByDisplayValue('Gate A')
 
     await user.click(screen.getByTestId('mock-scanner'))
 
-    await waitFor(() => {
-      expect(vi.mocked(checkinApi.checkIn)).toHaveBeenCalledWith('scanned-qr-code', 101)
-      expect(screen.getByText(/check-in successful/i)).toBeInTheDocument()
-    })
+    await waitFor(() => expect(checkinApi.checkIn).toHaveBeenCalledWith('scanned-qr-code', 101))
+    expect(await screen.findByRole('heading', { name: /ticket accepted/i })).toBeInTheDocument()
   })
 
-  it('loads gates for newly selected event', async () => {
+  it('loads gates again when the fallback event changes', async () => {
     const user = userEvent.setup()
-    const mockGatesForEvent2 = [{ id: 201, eventId: 2, name: 'Gate X' }]
     vi.mocked(eventApi.listGates)
-      .mockResolvedValueOnce(mockGates)          // for event 1
-      .mockResolvedValueOnce(mockGatesForEvent2) // for event 2
+      .mockResolvedValueOnce(mockGates)
+      .mockResolvedValueOnce([{ id: 201, eventId: 2, name: 'Gate X' }])
     render(<CheckInPage />)
-    await waitFor(() => screen.getByDisplayValue('Event Alpha'))
+    await screen.findByDisplayValue('Gate A')
 
-    await user.selectOptions(screen.getAllByRole('combobox')[0], '2')
-
-    await waitFor(() => {
-      expect(screen.getByDisplayValue('Gate X')).toBeInTheDocument()
-    })
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Event' }), '2')
+    expect(await screen.findByDisplayValue('Gate X')).toBeInTheDocument()
   })
 })

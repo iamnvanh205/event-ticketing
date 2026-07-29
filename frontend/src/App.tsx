@@ -7,6 +7,7 @@ import { AuthPage } from './features/auth/pages/AuthPage'
 import { useAuth } from './features/auth/hooks/useAuth'
 import type { Role } from './features/auth/types'
 import { CheckInPage } from './features/checkin/pages/CheckInPage'
+import { CheckInHistoryPage } from './features/checkin/pages/CheckInHistoryPage'
 import { OrganizerDashboardPage } from './features/dashboard/pages/OrganizerDashboardPage'
 import { OrganizerEventsPage } from './features/dashboard/pages/OrganizerEventsPage'
 import { EventWorkspacePage } from './features/dashboard/pages/EventWorkspacePage'
@@ -93,7 +94,15 @@ function App() {
       : <SystemStatePage kind="forbidden" homeHref={homeForRole(user?.role)} />
   } else if (path === '/checkin') {
     content = user?.role === 'CHECKIN_STAFF'
-      ? <CheckInPage />
+      ? <CheckInPage assignedEventId={user.assignedEventId} />
+      : <SystemStatePage kind="forbidden" homeHref={homeForRole(user?.role)} />
+  } else if (path === '/checkin/history') {
+    content = user?.role === 'CHECKIN_STAFF'
+      ? <CheckInHistoryPage assignedEventId={user.assignedEventId} />
+      : <SystemStatePage kind="forbidden" homeHref={homeForRole(user?.role)} />
+  } else if (path === '/organizer/check-ins') {
+    content = user?.role === 'ORGANIZER'
+      ? <CheckInHistoryPage organizerId={user.id} />
       : <SystemStatePage kind="forbidden" homeHref={homeForRole(user?.role)} />
   } else if (path === '/dashboard' || path === '/organizer') {
     content = user?.role === 'ORGANIZER'
