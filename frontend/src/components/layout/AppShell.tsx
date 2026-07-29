@@ -43,7 +43,7 @@ const navByRole: Record<AppRole, NavItem[]> = {
     { href: '/tickets', label: 'Tickets', icon: Ticket },
   ],
   ORGANIZER: [
-    { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
+    { href: '/organizer', label: 'Overview', icon: LayoutDashboard },
     { href: '/organizer/events', label: 'Events', icon: CalendarDays },
     { href: '/organizer/live', label: 'Live operations', icon: ChartNoAxesCombined },
     { href: '/organizer/check-ins', label: 'Check-ins', icon: History },

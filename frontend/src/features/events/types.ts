@@ -44,6 +44,15 @@ export interface GateItem {
   name: string
 }
 
+export interface EventStaffItem {
+  id: number
+  email: string
+  fullName?: string
+  role: string
+  active?: boolean
+  assignedEventId?: number
+}
+
 export interface PageResponse<T> {
   content: T[]
   page: number

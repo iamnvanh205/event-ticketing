@@ -8,6 +8,8 @@ import { useAuth } from './features/auth/hooks/useAuth'
 import type { Role } from './features/auth/types'
 import { CheckInPage } from './features/checkin/pages/CheckInPage'
 import { OrganizerDashboardPage } from './features/dashboard/pages/OrganizerDashboardPage'
+import { OrganizerEventsPage } from './features/dashboard/pages/OrganizerEventsPage'
+import { EventWorkspacePage } from './features/dashboard/pages/EventWorkspacePage'
 import { EventDetailPage } from './features/events/pages/EventDetailPage'
 import { EventsPage } from './features/events/pages/EventsPage'
 import { LandingPage } from './features/events/pages/LandingPage'
@@ -21,7 +23,7 @@ import { navigate, usePath } from './routes/navigation'
 import './App.css'
 
 function homeForRole(role?: Role) {
-  if (role === 'ORGANIZER') return '/dashboard'
+  if (role === 'ORGANIZER') return '/organizer'
   if (role === 'CHECKIN_STAFF') return '/checkin'
   if (role === 'ADMIN') return '/admin'
   return '/events'
@@ -93,9 +95,29 @@ function App() {
     content = user?.role === 'CHECKIN_STAFF'
       ? <CheckInPage />
       : <SystemStatePage kind="forbidden" homeHref={homeForRole(user?.role)} />
-  } else if (path === '/dashboard') {
+  } else if (path === '/dashboard' || path === '/organizer') {
     content = user?.role === 'ORGANIZER'
-      ? <OrganizerDashboardPage accessToken={accessToken} />
+      ? <OrganizerDashboardPage accessToken={accessToken} organizerId={user.id} />
+      : <SystemStatePage kind="forbidden" homeHref={homeForRole(user?.role)} />
+  } else if (path === '/organizer/events') {
+    content = user?.role === 'ORGANIZER'
+      ? <OrganizerEventsPage organizerId={user.id} />
+      : <SystemStatePage kind="forbidden" homeHref={homeForRole(user?.role)} />
+  } else if (path === '/organizer/events/new') {
+    content = user?.role === 'ORGANIZER'
+      ? <EventWorkspacePage />
+      : <SystemStatePage kind="forbidden" homeHref={homeForRole(user?.role)} />
+  } else if (/^\/organizer\/events\/\d+\/live$/.test(path)) {
+    content = user?.role === 'ORGANIZER'
+      ? <OrganizerDashboardPage accessToken={accessToken} organizerId={user.id} initialEventId={Number(path.split('/')[3])} liveOnly />
+      : <SystemStatePage kind="forbidden" homeHref={homeForRole(user?.role)} />
+  } else if (/^\/organizer\/events\/\d+(\/[^/]+)?$/.test(path)) {
+    content = user?.role === 'ORGANIZER'
+      ? <EventWorkspacePage eventId={Number(path.split('/')[3])} section={path.split('/')[4]} />
+      : <SystemStatePage kind="forbidden" homeHref={homeForRole(user?.role)} />
+  } else if (path === '/organizer/live') {
+    content = user?.role === 'ORGANIZER'
+      ? <OrganizerDashboardPage accessToken={accessToken} organizerId={user.id} liveOnly />
       : <SystemStatePage kind="forbidden" homeHref={homeForRole(user?.role)} />
   } else if (path === '/account' || path === '/account/profile') {
     content = user
