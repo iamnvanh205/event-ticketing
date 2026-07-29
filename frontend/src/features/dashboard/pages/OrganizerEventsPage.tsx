@@ -51,9 +51,9 @@ export function OrganizerEventsPage({ organizerId }: { organizerId: number }) {
           <span className="sr-only">Search owned events</span>
           <input type="search" value={query} placeholder="Search events or locations" onChange={(change) => setQuery(change.target.value)} />
         </label>
-        <div className="status-tabs" role="tablist" aria-label="Event status">
+        <div className="status-tabs" role="group" aria-label="Filter by event status">
           {(['ALL', 'DRAFT', 'PUBLISHED', 'CANCELLED'] as EventView[]).map((status) => (
-            <button className={view === status ? 'active' : ''} role="tab" aria-selected={view === status} type="button" key={status} onClick={() => setView(status)}>
+            <button className={view === status ? 'active' : ''} aria-pressed={view === status} type="button" key={status} onClick={() => setView(status)}>
               {status === 'ALL' ? 'All' : status.toLowerCase()}
             </button>
           ))}

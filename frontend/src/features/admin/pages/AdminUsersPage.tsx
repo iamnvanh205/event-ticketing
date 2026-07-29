@@ -15,6 +15,7 @@ export function AdminUsersPage({ currentUserId }: { currentUserId: number }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [pending, setPending] = useState<AuthUser | null>(null)
+  const [statusBusy, setStatusBusy] = useState(false)
   const returnFocus = useRef<HTMLButtonElement | null>(null)
 
   useEffect(() => {
@@ -39,6 +40,7 @@ export function AdminUsersPage({ currentUserId }: { currentUserId: number }) {
   async function confirmStatus() {
     if (!pending) return
     const active = pending.active === false
+    setStatusBusy(true)
     try {
       const updated = await setAdminUserStatus(pending.id, active)
       setUsers((items) => items.map((item) => item.id === updated.id ? updated : item))
@@ -46,6 +48,8 @@ export function AdminUsersPage({ currentUserId }: { currentUserId: number }) {
       setError('')
     } catch {
       setError(`Could not ${active ? 'restore' : 'lock'} this account.`)
+    } finally {
+      setStatusBusy(false)
     }
   }
 
@@ -82,7 +86,7 @@ export function AdminUsersPage({ currentUserId }: { currentUserId: number }) {
       </section>
 
       {error && <p className="inline-error" role="alert">{error}</p>}
-      {loading && <div className="admin-user-list" aria-label="Loading users">{Array.from({ length: 6 }, (_, index) => <span className="skeleton history-row-skeleton" key={index} />)}</div>}
+      {loading && <div className="admin-user-list" aria-busy="true" aria-label="Loading users">{Array.from({ length: 6 }, (_, index) => <span className="skeleton history-row-skeleton" key={index} />)}</div>}
       {!loading && !error && visible.length === 0 && <PageState title="No users match" description="Adjust the search, role, or account-status filter." action={<button className="outline-action" type="button" onClick={() => { setQuery(''); setRole('ALL'); setStatus('ALL') }}>Clear filters</button>} />}
       {!loading && visible.length > 0 && (
         <div className="admin-user-table" role="table" aria-label="Platform users">
@@ -109,7 +113,7 @@ export function AdminUsersPage({ currentUserId }: { currentUserId: number }) {
           <span className="dialog-icon">{pending.active === false ? <UnlockKeyhole aria-hidden="true" /> : <LockKeyhole aria-hidden="true" />}</span>
           <h2 id="status-dialog-title">{pending.active === false ? 'Restore account access?' : 'Lock this account?'}</h2>
           <p id="status-dialog-description">{pending.active === false ? `${pending.fullName} will be able to sign in again.` : `${pending.fullName} will lose access until an administrator restores the account.`}</p>
-          <div className="dialog-actions"><button autoFocus className="outline-action" type="button" onClick={closeDialog}>Cancel</button><button className={pending.active === false ? 'primary-action' : 'button destructive-action'} type="button" onClick={() => void confirmStatus()}>{pending.active === false ? 'Restore access' : 'Lock account'}</button></div>
+          <div className="dialog-actions"><button autoFocus className="outline-action" disabled={statusBusy} type="button" onClick={closeDialog}>Cancel</button><button aria-busy={statusBusy} className={pending.active === false ? 'primary-action' : 'button destructive-action'} disabled={statusBusy} type="button" onClick={() => void confirmStatus()}>{statusBusy ? 'Updating…' : pending.active === false ? 'Restore access' : 'Lock account'}</button></div>
         </section>
       </div>}
     </section>

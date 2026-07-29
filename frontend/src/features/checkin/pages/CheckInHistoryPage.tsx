@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { CalendarDays, Check, Clock3, DoorOpen, Search } from 'lucide-react'
 import { PageTitle } from '../../../components/layout/PageTitle'
 import { PageState } from '../../../components/ui/feedback'
@@ -28,7 +28,11 @@ export function CheckInHistoryPage({ assignedEventId, organizerId }: { assignedE
       const allowed = organizerId ? items.filter((item) => item.organizerId === organizerId) : items
       setEvents(allowed)
       setEventId((current) => current ?? allowed[0]?.id ?? null)
-    }).catch(() => setError('Could not load available events.'))
+      if (allowed.length === 0) setLoading(false)
+    }).catch(() => {
+      setError('Could not load available events.')
+      setLoading(false)
+    })
   }, [assignedEventId, organizerId])
 
   useEffect(() => {
@@ -36,7 +40,11 @@ export function CheckInHistoryPage({ assignedEventId, organizerId }: { assignedE
     listGates(eventId).then((items) => {
       setGates(items)
       setGateId(items[0]?.id ?? null)
-    }).catch(() => setError('Could not load event gates.'))
+      if (items.length === 0) setLoading(false)
+    }).catch(() => {
+      setError('Could not load event gates.')
+      setLoading(false)
+    })
   }, [eventId])
 
   useEffect(() => {
@@ -52,10 +60,6 @@ export function CheckInHistoryPage({ assignedEventId, organizerId }: { assignedE
       .finally(() => setLoading(false))
   }, [date, gateId])
 
-  function search(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-  }
-
   const visible = useMemo(() => logs.filter((log) => String(log.ticketId).includes(query.trim())), [logs, query])
   const event = events.find((item) => item.id === eventId)
 
@@ -63,15 +67,17 @@ export function CheckInHistoryPage({ assignedEventId, organizerId }: { assignedE
     <section className="page checkin-history-page">
       <PageTitle eyebrow="Admission records" title="Check-in history" description="Review completed scans by event, gate, date, and ticket reference." />
       <section className="history-context surface">
-        <label className="field">Event<select value={eventId ?? ''} disabled={Boolean(assignedEventId)} onChange={(change) => setEventId(Number(change.target.value))}>{events.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
-        <label className="field">Gate<select value={gateId ?? ''} onChange={(change) => setGateId(Number(change.target.value))}>{gates.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
-        <label className="field">Date<input max={today()} type="date" value={date} onChange={(change) => setDate(change.target.value)} /></label>
-        <form className="search-field" role="search" onSubmit={search}><Search aria-hidden="true" size={18} /><label className="sr-only" htmlFor="history-search">Search ticket reference</label><input id="history-search" type="search" value={query} placeholder="Ticket number" onChange={(change) => setQuery(change.target.value)} /></form>
+        <label className="field">Event<select value={eventId ?? ''} disabled={Boolean(assignedEventId)} onChange={(change) => { setLoading(true); setError(''); setGateId(null); setGates([]); setEventId(Number(change.target.value)) }}>{events.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
+        <label className="field">Gate<select value={gateId ?? ''} onChange={(change) => { setLoading(true); setGateId(Number(change.target.value)) }}>{gates.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
+        <label className="field">Date<input max={today()} type="date" value={date} onChange={(change) => { setLoading(true); setDate(change.target.value) }} /></label>
+        <label className="search-field" htmlFor="history-search"><Search aria-hidden="true" size={18} /><span className="sr-only">Search ticket reference</span><input id="history-search" type="search" value={query} placeholder="Ticket number" onChange={(change) => setQuery(change.target.value)} /></label>
       </section>
 
-      {loading && <div className="history-list" aria-label="Loading check-in history">{Array.from({ length: 5 }, (_, index) => <span className="skeleton history-row-skeleton" key={index} />)}</div>}
+      {loading && <div className="history-list" aria-busy="true" aria-label="Loading check-in history">{Array.from({ length: 5 }, (_, index) => <span className="skeleton history-row-skeleton" key={index} />)}</div>}
       {!loading && error && <PageState kind="error" title="Could not load history" description={error} />}
-      {!loading && !error && visible.length === 0 && <PageState title="No check-ins found" description={`No matching admission records were returned for ${event?.name ?? 'this event'} on this date.`} />}
+      {!loading && !error && events.length === 0 && <PageState title="No events available" description="There is no assigned or owned event to review yet." />}
+      {!loading && !error && events.length > 0 && gates.length === 0 && <PageState title="No admission gates" description="Check-in history will appear after a gate is configured for this event." />}
+      {!loading && !error && gates.length > 0 && visible.length === 0 && <PageState title="No check-ins found" description={`No matching admission records were returned for ${event?.name ?? 'this event'} on this date.`} />}
       {!loading && !error && visible.length > 0 && (
         <div className="history-table" role="table" aria-label="Check-in records">
           <div className="history-row history-head" role="row"><span role="columnheader">Result</span><span role="columnheader">Ticket</span><span role="columnheader">Gate</span><span role="columnheader">Time</span></div>

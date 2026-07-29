@@ -24,6 +24,7 @@ export function OrganizerDashboardPage({ accessToken, organizerId, initialEventI
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [loading, setLoading] = useState(true)
+  const [snapshotLoading, setSnapshotLoading] = useState(true)
   const [error, setError] = useState('')
 
   const loadEvents = useCallback(() => {
@@ -44,13 +45,14 @@ export function OrganizerDashboardPage({ accessToken, organizerId, initialEventI
 
   const loadSnapshot = useCallback(() => {
     if (!eventId) return
-    getDashboardSnapshot(eventId)
+    return getDashboardSnapshot(eventId)
       .then((data) => {
         setSnapshot(data)
         setLastUpdated(new Date())
         setError('')
       })
       .catch(() => setError('Could not refresh live event data. The last snapshot remains visible.'))
+      .finally(() => setSnapshotLoading(false))
   }, [eventId])
 
   useEffect(() => {
@@ -63,6 +65,18 @@ export function OrganizerDashboardPage({ accessToken, organizerId, initialEventI
     ? Math.round((snapshot.totalCheckedIn / snapshot.totalTicketsSold) * 100)
     : 0
 
+  function retryEvents() {
+    setLoading(true)
+    setError('')
+    void loadEvents()
+  }
+
+  function retrySnapshot() {
+    setSnapshotLoading(true)
+    setError('')
+    void loadSnapshot()
+  }
+
   return (
     <section className="page organizer-dashboard">
       <PageTitle
@@ -73,7 +87,7 @@ export function OrganizerDashboardPage({ accessToken, organizerId, initialEventI
       />
 
       {loading && <div className="organizer-metric-grid" aria-label="Loading event metrics">{Array.from({ length: 4 }, (_, index) => <span className="skeleton metric-skeleton" key={index} />)}</div>}
-      {!loading && error && events.length === 0 && <PageState kind="error" title="Could not load organizer workspace" description={error} action={<button className="outline-action" type="button" onClick={loadEvents}>Try again</button>} />}
+      {!loading && error && events.length === 0 && <PageState kind="error" title="Could not load organizer workspace" description={error} action={<button className="outline-action" type="button" onClick={retryEvents}>Try again</button>} />}
       {!loading && !error && events.length === 0 && (
         <PageState
           title="Create your first event"
@@ -92,7 +106,7 @@ export function OrganizerDashboardPage({ accessToken, organizerId, initialEventI
             </div>
             <label className="field event-selector">
               <span>Selected event</span>
-              <select value={eventId ?? ''} onChange={(change) => setEventId(Number(change.target.value))}>
+              <select value={eventId ?? ''} onChange={(change) => { setSnapshot(null); setSnapshotLoading(true); setError(''); setEventId(Number(change.target.value)) }}>
                 {events.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
               </select>
             </label>
@@ -106,7 +120,7 @@ export function OrganizerDashboardPage({ accessToken, organizerId, initialEventI
             </div>
             <button className="icon-button" type="button" onClick={loadSnapshot} aria-label="Refresh event metrics"><RefreshCw aria-hidden="true" size={18} /></button>
           </div>
-          {error && <p className="inline-error" role="alert">{error}</p>}
+          {error && snapshot && <p className="inline-error" role="alert">{error}</p>}
 
           {snapshot ? (
             <>
@@ -131,7 +145,7 @@ export function OrganizerDashboardPage({ accessToken, organizerId, initialEventI
                 </article>
               </section>
             </>
-          ) : !loading && <PageState kind="loading" title="Loading event metrics" description="Fetching the latest server snapshot." />}
+          ) : snapshotLoading ? <PageState kind="loading" title="Loading event metrics" description="Fetching the latest server snapshot." /> : <PageState kind="error" title="Live metrics unavailable" description={error || 'The latest event snapshot could not be loaded.'} action={<button className="outline-action" type="button" onClick={retrySnapshot}>Try again</button>} />}
 
           {!liveOnly && (
             <section className="owned-events-section">

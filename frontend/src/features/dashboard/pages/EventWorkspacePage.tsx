@@ -83,7 +83,7 @@ export function EventWorkspacePage({ eventId, section = 'overview' }: { eventId?
       {error && <p className="inline-error" role="alert">{error}</p>}
 
       <div className="workspace-layout">
-        <main className="workspace-main">
+        <div className="workspace-main">
           {(!eventId || activeSection === 'details') && <EventDetailsForm item={event} onSaved={(saved) => {
             setEvent(saved)
             setNotice(eventId ? 'Changes saved' : 'Event created')
@@ -94,7 +94,7 @@ export function EventWorkspacePage({ eventId, section = 'overview' }: { eventId?
           {eventId && activeSection === 'gates' && <GateSection eventId={eventId} items={gates} onCreated={load} onError={setError} />}
           {eventId && activeSection === 'staff' && <StaffSection eventId={eventId} items={staff} onCreated={load} onError={setError} />}
           {eventId && activeSection === 'publishing' && <PublishingSection item={event!} tickets={ticketTypes} gates={gates} />}
-        </main>
+        </div>
         <aside className="workspace-aside">
           <p className="eyebrow">Completion</p>
           <h2>Event readiness</h2>
@@ -181,52 +181,66 @@ function WorkspaceOverview({ item, tickets, gates, staff }: { item: EventItem; t
 }
 
 function TicketSection({ eventId, items, onCreated, onError }: { eventId: number; items: TicketTypeItem[]; onCreated: () => void; onError: (message: string) => void }) {
+  const [busy, setBusy] = useState(false)
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
     const start = new Date(String(data.get('salesStartAt')))
     const end = new Date(String(data.get('salesEndAt')))
     if (end <= start) return onError('Ticket sales end must be after sales start.')
+    setBusy(true)
+    onError('')
     try {
       await createTicketType(eventId, { name: String(data.get('name')).trim(), price: Number(data.get('price')), quantityTotal: Number(data.get('quantityTotal')), salesStartAt: start.toISOString(), salesEndAt: end.toISOString() })
       event.currentTarget.reset()
       onCreated()
     } catch {
       onError('Could not create this ticket type.')
+    } finally {
+      setBusy(false)
     }
   }
   return <ManagementSection icon={<Ticket />} title="Ticket types" description="Define inventory, price, and the sales window." items={items.map((item) => <div className="management-item" key={item.id}><span><strong>{item.name}</strong><small>{item.quantityRemaining} of {item.quantityTotal} remaining</small></span><strong>{money.format(item.price)}</strong></div>)}>
-    <form className="compact-create-form" onSubmit={submit}><label className="field">Name<input name="name" required /></label><div className="field-row"><label className="field">Price<input min="0" name="price" type="number" required /></label><label className="field">Quantity<input min="1" name="quantityTotal" type="number" required /></label></div><div className="field-row"><label className="field">Sales start<input name="salesStartAt" type="datetime-local" required /></label><label className="field">Sales end<input name="salesEndAt" type="datetime-local" required /></label></div><button className="primary-action" type="submit"><Plus aria-hidden="true" size={17} />Add ticket type</button></form>
+    <form className="compact-create-form" onSubmit={submit}><label className="field">Name<input name="name" required /></label><div className="field-row"><label className="field">Price<input min="0" name="price" type="number" required /></label><label className="field">Quantity<input min="1" name="quantityTotal" type="number" required /></label></div><div className="field-row"><label className="field">Sales start<input name="salesStartAt" type="datetime-local" required /></label><label className="field">Sales end<input name="salesEndAt" type="datetime-local" required /></label></div><button aria-busy={busy} className="primary-action" disabled={busy} type="submit"><Plus aria-hidden="true" size={17} />{busy ? 'Adding…' : 'Add ticket type'}</button></form>
   </ManagementSection>
 }
 
 function GateSection({ eventId, items, onCreated, onError }: { eventId: number; items: GateItem[]; onCreated: () => void; onError: (message: string) => void }) {
+  const [busy, setBusy] = useState(false)
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
+    setBusy(true)
+    onError('')
     try {
       await createGate(eventId, String(data.get('name')).trim())
       event.currentTarget.reset()
       onCreated()
-    } catch { onError('Could not create this gate.') }
+    } catch { onError('Could not create this gate.') } finally { setBusy(false) }
   }
   return <ManagementSection icon={<DoorOpen />} title="Admission gates" description="Create clear gate names staff can choose while scanning." items={items.map((item) => <div className="management-item" key={item.id}><strong>{item.name}</strong><span className="status">Gate</span></div>)}>
-    <form className="inline-create-form" onSubmit={submit}><label className="field">Gate name<input name="name" required /></label><button className="primary-action" type="submit"><Plus aria-hidden="true" size={17} />Add gate</button></form>
+    <form className="inline-create-form" onSubmit={submit}><label className="field">Gate name<input name="name" required /></label><button aria-busy={busy} className="primary-action" disabled={busy} type="submit"><Plus aria-hidden="true" size={17} />{busy ? 'Adding…' : 'Add gate'}</button></form>
   </ManagementSection>
 }
 
 function StaffSection({ eventId, items, onCreated, onError }: { eventId: number; items: EventStaffItem[]; onCreated: () => void; onError: (message: string) => void }) {
+  const [busy, setBusy] = useState(false)
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
+    setBusy(true)
+    onError('')
     try {
       await createEventStaff(eventId, { fullName: String(data.get('fullName')).trim(), email: String(data.get('email')).trim(), password: String(data.get('password')) })
       event.currentTarget.reset()
       onCreated()
-    } catch { onError('Could not add this staff account.') }
+    } catch { onError('Could not add this staff account.') } finally { setBusy(false) }
   }
   return <ManagementSection icon={<Users />} title="Check-in staff" description="Create event-scoped accounts for the scanning team." items={items.map((item) => <div className="management-item" key={item.id}><span><strong>{item.fullName ?? item.email}</strong><small>{item.email}</small></span><span className="status">{item.active === false ? 'Inactive' : 'Active'}</span></div>)}>
-    <form className="compact-create-form" onSubmit={submit}><label className="field">Full name<input autoComplete="name" name="fullName" required /></label><label className="field">Email<input autoComplete="email" name="email" type="email" required /></label><label className="field">Temporary password<input autoComplete="new-password" minLength={8} name="password" type="password" required /></label><button className="primary-action" type="submit"><Plus aria-hidden="true" size={17} />Add staff member</button></form>
+    <form className="compact-create-form" onSubmit={submit}><label className="field">Full name<input autoComplete="name" name="fullName" required /></label><label className="field">Email<input autoComplete="email" name="email" type="email" required /></label><label className="field">Temporary password<input autoComplete="new-password" minLength={8} name="password" type="password" required /></label><button aria-busy={busy} className="primary-action" disabled={busy} type="submit"><Plus aria-hidden="true" size={17} />{busy ? 'Adding…' : 'Add staff member'}</button></form>
   </ManagementSection>
 }
 

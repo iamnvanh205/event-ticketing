@@ -32,6 +32,7 @@ export function CheckInPage({ assignedEventId }: { assignedEventId?: number | nu
   const [qrCode, setQrCode] = useState('')
   const [result, setResult] = useState<CheckInResult | null>(null)
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [sessionCount, setSessionCount] = useState(0)
   const manualInput = useRef<HTMLInputElement>(null)
@@ -42,8 +43,12 @@ export function CheckInPage({ assignedEventId }: { assignedEventId?: number | nu
       .then((items) => {
         setEvents(items)
         setEventId((current) => current ?? items[0]?.id ?? null)
+        if (items.length === 0) setLoading(false)
       })
-      .catch(() => setError('Could not load the assigned event.'))
+      .catch(() => {
+        setError('Could not load the assigned event.')
+        setLoading(false)
+      })
   }, [assignedEventId])
 
   useEffect(() => {
@@ -58,6 +63,9 @@ export function CheckInPage({ assignedEventId }: { assignedEventId?: number | nu
       })
       .catch(() => {
         if (active) setError('Could not load admission gates.')
+      })
+      .finally(() => {
+        if (active) setLoading(false)
       })
     return () => { active = false }
   }, [eventId])
@@ -84,7 +92,10 @@ export function CheckInPage({ assignedEventId }: { assignedEventId?: number | nu
   const event = events.find((item) => item.id === eventId)
   const gate = gates.find((item) => item.id === gateId)
 
-  if (!event && error) return <section className="checkin-page"><PageState headingLevel={1} kind="error" title="Scanner unavailable" description={error} /></section>
+  if (loading) return <section className="checkin-page"><PageState headingLevel={1} kind="loading" title="Preparing scanner" description="Loading the assigned event and admission gates." /></section>
+  if ((!event || !gateId) && error) return <section className="checkin-page"><PageState headingLevel={1} kind="error" title="Scanner unavailable" description={error} /></section>
+  if (!event) return <section className="checkin-page"><PageState headingLevel={1} title="No event assigned" description="An organizer must assign an event before this station can scan tickets." /></section>
+  if (gates.length === 0) return <section className="checkin-page"><PageState headingLevel={1} title="No admission gates" description="Ask the organizer to add a gate before check-in begins." /></section>
 
   return (
     <section className="checkin-page">
@@ -95,7 +106,7 @@ export function CheckInPage({ assignedEventId }: { assignedEventId?: number | nu
           <p><Wifi aria-hidden="true" size={15} />Ready to validate · {sessionCount} admitted this session</p>
         </div>
         <div className="scanner-selectors">
-          {!assignedEventId && <label className="field">Event<select value={eventId ?? ''} onChange={(change) => setEventId(Number(change.target.value))}>{events.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}
+          {!assignedEventId && <label className="field">Event<select value={eventId ?? ''} onChange={(change) => { setLoading(true); setError(''); setGateId(null); setGates([]); setEventId(Number(change.target.value)) }}>{events.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}
           <label className="field">Gate<select value={gateId ?? ''} onChange={(change) => {
             const next = Number(change.target.value)
             setGateId(next)

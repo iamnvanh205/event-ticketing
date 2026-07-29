@@ -131,4 +131,12 @@ describe('CheckInPage', () => {
     await user.selectOptions(screen.getByRole('combobox', { name: 'Event' }), '2')
     expect(await screen.findByDisplayValue('Gate X')).toBeInTheDocument()
   })
+
+  it('shows a recoverable empty state when no gate is configured', async () => {
+    vi.mocked(eventApi.listGates).mockResolvedValue([])
+    render(<CheckInPage assignedEventId={1} />)
+
+    expect(await screen.findByRole('heading', { name: /no admission gates/i })).toBeInTheDocument()
+    expect(screen.getByText(/ask the organizer to add a gate/i)).toBeInTheDocument()
+  })
 })
