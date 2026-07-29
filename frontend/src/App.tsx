@@ -4,6 +4,8 @@ import { SystemStatePage } from './components/layout/SystemStatePage'
 import { PageState } from './components/ui/feedback'
 import { AccountPage } from './features/auth/pages/AccountPage'
 import { AuthPage } from './features/auth/pages/AuthPage'
+import { AdminDashboardPage } from './features/admin/pages/AdminDashboardPage'
+import { AdminUsersPage } from './features/admin/pages/AdminUsersPage'
 import { useAuth } from './features/auth/hooks/useAuth'
 import type { Role } from './features/auth/types'
 import { CheckInPage } from './features/checkin/pages/CheckInPage'
@@ -128,9 +130,21 @@ function App() {
     content = user?.role === 'ORGANIZER'
       ? <OrganizerDashboardPage accessToken={accessToken} organizerId={user.id} liveOnly />
       : <SystemStatePage kind="forbidden" homeHref={homeForRole(user?.role)} />
+  } else if (path === '/admin') {
+    content = user?.role === 'ADMIN'
+      ? <AdminDashboardPage />
+      : <SystemStatePage kind="forbidden" homeHref={homeForRole(user?.role)} />
+  } else if (path === '/admin/users') {
+    content = user?.role === 'ADMIN'
+      ? <AdminUsersPage currentUserId={user.id} />
+      : <SystemStatePage kind="forbidden" homeHref={homeForRole(user?.role)} />
   } else if (path === '/account' || path === '/account/profile') {
     content = user
       ? <AccountPage onLogout={logout} user={user} />
+      : <AuthPage />
+  } else if (path === '/account/settings') {
+    content = user
+      ? <AccountPage mode="settings" onLogout={logout} user={user} />
       : <AuthPage />
   } else if (path === '/403') {
     content = <SystemStatePage kind="forbidden" homeHref={homeForRole(user?.role)} />
