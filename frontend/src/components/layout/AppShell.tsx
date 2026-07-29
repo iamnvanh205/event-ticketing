@@ -1,38 +1,173 @@
 import type { ReactNode } from 'react'
-import { LogOut, Ticket } from 'lucide-react'
-import { navigate } from '../../routes/navigation'
+import {
+  CalendarDays,
+  ChartNoAxesCombined,
+  History,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  ScanLine,
+  Search,
+  Settings,
+  Ticket,
+  UserRound,
+  Users,
+} from 'lucide-react'
+import type { Role } from '../../features/auth/types'
+import { usePath } from '../../routes/navigation'
+import { ThemeToggle } from './ThemeToggle'
+
+type AppRole = Role | 'GUEST'
 
 interface AppShellProps {
   children: ReactNode
-  role: string
+  role: AppRole
   userName: string
   onLogout: () => Promise<void>
 }
 
-export function AppShell({ children, role, userName, onLogout }: AppShellProps) {
+interface NavItem {
+  href: string
+  label: string
+  icon: typeof CalendarDays
+}
+
+const navByRole: Record<AppRole, NavItem[]> = {
+  GUEST: [
+    { href: '/events', label: 'Discover', icon: CalendarDays },
+    { href: '/search', label: 'Search', icon: Search },
+  ],
+  CUSTOMER: [
+    { href: '/events', label: 'Discover', icon: CalendarDays },
+    { href: '/search', label: 'Search', icon: Search },
+    { href: '/tickets', label: 'Tickets', icon: Ticket },
+  ],
+  ORGANIZER: [
+    { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
+    { href: '/organizer/events', label: 'Events', icon: CalendarDays },
+    { href: '/organizer/live', label: 'Live operations', icon: ChartNoAxesCombined },
+    { href: '/organizer/check-ins', label: 'Check-ins', icon: History },
+  ],
+  CHECKIN_STAFF: [
+    { href: '/checkin', label: 'Scan', icon: ScanLine },
+    { href: '/checkin/history', label: 'History', icon: History },
+  ],
+  ADMIN: [
+    { href: '/admin', label: 'Overview', icon: LayoutDashboard },
+    { href: '/admin/users', label: 'Users', icon: Users },
+  ],
+}
+
+function isActive(path: string, href: string) {
+  return path === href || (href !== '/events' && path.startsWith(`${href}/`))
+}
+
+function Brand() {
   return (
-    <main className="app-frame">
-      <header className="topbar">
-        <button className="brand-link" type="button" onClick={() => navigate('/events')}>
-          <Ticket size={22} />
-          Event Ticketing
-        </button>
-        <nav>
-          <button type="button" onClick={() => navigate('/events')}>Events</button>
-          {role === 'CUSTOMER' && <button type="button" onClick={() => navigate('/tickets')}>My tickets</button>}
-          {role === 'CHECKIN_STAFF' && <button type="button" onClick={() => navigate('/checkin')}>Check-in</button>}
-          {role === 'ORGANIZER' && <button type="button" onClick={() => navigate('/dashboard')}>Dashboard</button>}
-        </nav>
-        {role === 'GUEST' ? (
-          <button className="outline-action" type="button" onClick={() => navigate('/account')}>Sign in</button>
-        ) : (
-          <button className="outline-action" type="button" onClick={() => void onLogout()}>
-            <LogOut size={16} />
-            {userName}
-          </button>
+    <a className="brand-link" href="/events" aria-label="Event Ticketing home">
+      <span className="brand-mark" aria-hidden="true"><Ticket size={18} /></span>
+      <span>Event Ticketing</span>
+    </a>
+  )
+}
+
+function NavLinks({ items, path }: { items: NavItem[]; path: string }) {
+  return items.map(({ href, label, icon: Icon }) => (
+    <a className={`nav-link ${isActive(path, href) ? 'active' : ''}`} href={href} key={href} aria-current={isActive(path, href) ? 'page' : undefined}>
+      <Icon aria-hidden="true" size={18} />
+      <span>{label}</span>
+    </a>
+  ))
+}
+
+function Topbar({ role, userName, onLogout, path, operational = false }: AppShellProps & { path: string; operational?: boolean }) {
+  const items = navByRole[role]
+
+  return (
+    <header className={`topbar ${operational ? 'mobile-bar' : ''}`}>
+      <div className="topbar-inner">
+        <Brand />
+        <nav aria-label="Primary navigation"><NavLinks items={items} path={path} /></nav>
+        <div className="topbar-actions">
+          <ThemeToggle />
+          {role === 'GUEST' ? (
+            <a className="outline-action desktop-only" href="/auth">Sign in</a>
+          ) : (
+            <>
+              <a className="nav-link account-link" href="/account/profile">
+                <UserRound aria-hidden="true" size={18} />
+                <span>{userName}</span>
+              </a>
+              <button className="icon-button desktop-only" type="button" onClick={() => void onLogout()} aria-label="Sign out">
+                <LogOut aria-hidden="true" size={18} />
+              </button>
+            </>
+          )}
+          <details className="mobile-menu">
+            <summary className="icon-button" aria-label="Open navigation"><Menu aria-hidden="true" size={20} /></summary>
+            <nav aria-label="Mobile navigation">
+              <NavLinks items={items} path={path} />
+              {role === 'GUEST' ? (
+                <a className="nav-link" href="/auth"><UserRound aria-hidden="true" size={18} />Sign in</a>
+              ) : (
+                <>
+                  <a className="nav-link" href="/account/profile"><UserRound aria-hidden="true" size={18} />Profile</a>
+                  <a className="nav-link" href="/account/settings"><Settings aria-hidden="true" size={18} />Settings</a>
+                  <button className="nav-link" type="button" onClick={() => void onLogout()}><LogOut aria-hidden="true" size={18} />Sign out</button>
+                </>
+              )}
+            </nav>
+          </details>
+        </div>
+      </div>
+    </header>
+  )
+}
+
+export function AppShell(props: AppShellProps) {
+  const path = usePath()
+  const operational = props.role === 'ORGANIZER' || props.role === 'ADMIN'
+  const attendeeMobileNav = props.role === 'CUSTOMER'
+
+  if (!operational) {
+    return (
+      <div className="app-frame">
+        <a className="skip-link" href="#main-content">Skip to content</a>
+        <Topbar {...props} path={path} />
+        <main className="app-main" id="main-content">{props.children}</main>
+        {attendeeMobileNav && (
+          <nav className="mobile-bottom-nav" aria-label="Mobile primary navigation">
+            <NavLinks items={[
+              { href: '/events', label: 'Discover', icon: CalendarDays },
+              { href: '/search', label: 'Search', icon: Search },
+              { href: '/tickets', label: 'Tickets', icon: Ticket },
+              { href: '/account/profile', label: 'Account', icon: UserRound },
+            ]} path={path} />
+          </nav>
         )}
-      </header>
-      {children}
-    </main>
+      </div>
+    )
+  }
+
+  const items = navByRole[props.role]
+  return (
+    <div className="app-frame has-sidebar">
+      <a className="skip-link" href="#main-content">Skip to content</a>
+      <aside className="sidebar">
+        <Brand />
+        <nav className="sidebar-nav" aria-label="Primary navigation"><NavLinks items={items} path={path} /></nav>
+        <div className="sidebar-footer">
+          <a className="nav-link" href="/account/profile"><UserRound aria-hidden="true" size={18} />Profile</a>
+          <a className="nav-link" href="/account/settings"><Settings aria-hidden="true" size={18} />Settings</a>
+          <ThemeToggle labelled />
+          <button className="nav-link" type="button" onClick={() => void props.onLogout()}><LogOut aria-hidden="true" size={18} />Sign out</button>
+          <div className="sidebar-user"><strong>{props.userName}</strong><span>{props.role.replace('_', ' ')}</span></div>
+        </div>
+      </aside>
+      <div className="app-main">
+        <Topbar {...props} path={path} operational />
+        <main id="main-content">{props.children}</main>
+      </div>
+    </div>
   )
 }
