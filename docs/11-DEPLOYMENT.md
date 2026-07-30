@@ -131,6 +131,7 @@ Quản lý trực tiếp qua Environment Variables trên dashboard Render/Vercel
 | `CLOUDINARY_URL` | Render | Upload banner event |
 | `VITE_API_BASE_URL` | Vercel | URL backend production |
 | `VITE_WS_URL` | Vercel | URL WebSocket production |
+| `VITE_GOOGLE_CLIENT_ID` | Vercel | Public Google Identity Services Web client ID; must match backend `GOOGLE_CLIENT_ID` |
 
 **Quy tắc bắt buộc**: không commit bất kỳ secret nào vào Git, kể cả trong file `application-local.yml` mẫu — sử dụng `application-local.yml.example` làm template, file thật nằm trong `.gitignore`.
 

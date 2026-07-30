@@ -88,6 +88,21 @@ describe('useAuth — register', () => {
   })
 })
 
+describe('useAuth - Google login', () => {
+  it('sets accessToken and user after successful Google login', async () => {
+    vi.mocked(authApi.googleLogin).mockResolvedValue(mockLoginResponse)
+
+    await act(async () => {
+      await getState().googleLogin('google-id-token')
+    })
+
+    expect(vi.mocked(authApi.googleLogin)).toHaveBeenCalledWith('google-id-token')
+    expect(getState().user).toEqual(mockUser)
+    expect(getState().accessToken).toBe('token-abc')
+    expect(getState().loading).toBe(false)
+  })
+})
+
 describe('useAuth — logout', () => {
   it('clears accessToken and user after logout', async () => {
     vi.mocked(authApi.logout).mockResolvedValue(undefined)

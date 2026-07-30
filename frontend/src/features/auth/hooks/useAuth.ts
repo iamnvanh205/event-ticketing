@@ -11,6 +11,7 @@ interface AuthState {
   loading: boolean
   login: (request: LoginRequest) => Promise<void>
   register: (request: RegisterRequest) => Promise<void>
+  googleLogin: (idToken: string) => Promise<void>
   refresh: () => Promise<string | null>
   logout: () => Promise<void>
 }
@@ -35,6 +36,17 @@ export const useAuth = create<AuthState>((set) => ({
     set({ loading: true })
     try {
       const response = await authApi.register(request)
+      setAccessToken(response.accessToken)
+      set({ accessToken: response.accessToken, user: response.user })
+    } finally {
+      set({ loading: false })
+    }
+  },
+
+  async googleLogin(idToken) {
+    set({ loading: true })
+    try {
+      const response = await authApi.googleLogin(idToken)
       setAccessToken(response.accessToken)
       set({ accessToken: response.accessToken, user: response.user })
     } finally {

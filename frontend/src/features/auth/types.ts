@@ -1,10 +1,13 @@
 export type Role = 'ADMIN' | 'ORGANIZER' | 'CHECKIN_STAFF' | 'CUSTOMER'
+export type AuthProvider = 'LOCAL' | 'GOOGLE'
 
 export interface AuthUser {
   id: number
   email: string
   role: Role
+  provider?: AuthProvider
   fullName: string
+  avatarUrl?: string | null
   assignedEventId?: number | null
   active?: boolean
 }

@@ -16,6 +16,11 @@ export async function register(request: RegisterRequest) {
   return data
 }
 
+export async function googleLogin(idToken: string) {
+  const { data } = await apiClient.post<LoginResponse>('/auth/google', { idToken })
+  return data
+}
+
 export async function refreshToken() {
   const { data } = await apiClient.post<LoginResponse>('/auth/refresh')
   return data

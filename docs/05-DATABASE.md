@@ -117,7 +117,7 @@ CREATE TABLE roles (
 | `email` | `VARCHAR(255)` | `UNIQUE NOT NULL` | |
 | `password_hash` | `VARCHAR(255)` | `NULL` | NULL nếu tài khoản chỉ đăng nhập qua Google Identity Services |
 | `google_id` | `VARCHAR(255)` | `UNIQUE NULL` | ID tài khoản Google, NULL nếu đăng ký email/password |
-| `provider` | `VARCHAR(20)` | `NOT NULL DEFAULT 'LOCAL'`, `CHECK (LOCAL, GOOGLE)` | Nguồn xác thực chính: `LOCAL` hoặc `GOOGLE` |
+| `provider` | `VARCHAR(20)` | `NOT NULL DEFAULT 'LOCAL'`, `CHECK provider IN ('LOCAL', 'GOOGLE')` | Nguồn xác thực chính: `LOCAL` hoặc `GOOGLE` |
 | `full_name` | `VARCHAR(255)` | `NOT NULL` | |
 | `avatar_url` | `VARCHAR(500)` | `NULL` | Ảnh đại diện từ Google verified payload |
 | `last_login_at` | `TIMESTAMPTZ` | `NULL` | Thời điểm login Google gần nhất |

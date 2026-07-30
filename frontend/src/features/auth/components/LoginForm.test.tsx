@@ -9,6 +9,7 @@ vi.mock('../hooks/useAuth')
 
 const mockLogin = vi.fn()
 const mockRegister = vi.fn()
+const mockGoogleLogin = vi.fn()
 
 function mockAuthStore(overrides?: Partial<ReturnType<typeof useAuth>>) {
   vi.mocked(useAuth).mockReturnValue({
@@ -17,6 +18,7 @@ function mockAuthStore(overrides?: Partial<ReturnType<typeof useAuth>>) {
     loading: false,
     login: mockLogin,
     register: mockRegister,
+    googleLogin: mockGoogleLogin,
     refresh: vi.fn(),
     logout: vi.fn(),
     ...overrides,
