@@ -67,13 +67,12 @@ Filtering: sử dụng query param riêng theo từng field hỗ trợ, khai bá
 |---|---|---|---|
 | `POST` | `/auth/register` | Public | Đăng ký tài khoản (Customer, email/password) |
 | `POST` | `/auth/login` | Public | Đăng nhập email/password |
-| `GET` | `/auth/google` | Public | Bắt đầu luồng Google OAuth2 (redirect) |
-| `GET` | `/auth/google/callback` | Public | Callback Google OAuth2, trả JWT |
+| `POST` | `/auth/google` | Public | Dang nhap bang Google Identity Services ID token |
 | `POST` | `/auth/refresh` | Public (cần cookie refresh token) | Cấp access token mới, rotate refresh token |
 | `POST` | `/auth/logout` | Authenticated | Vô hiệu hoá refresh token hiện tại |
 | `GET` | `/auth/me` | Authenticated | Lấy thông tin user hiện tại |
 
-**Design Consideration:** phương thức đăng nhập cho `ORGANIZER`/`ADMIN`/`CHECKIN_STAFF` được giả định là email/password (không qua Google OAuth2, vốn chỉ dành cho `CUSTOMER`). Giả định này cần được xác nhận chính thức trước khi triển khai — nếu đúng, `/auth/register` public chỉ áp dụng cho `CUSTOMER`; tài khoản `ORGANIZER`/`ADMIN`/`CHECKIN_STAFF` được tạo qua kênh khác (xem mục 11).
+**Design Consideration:** phương thức đăng nhập cho `ORGANIZER`/`ADMIN`/`CHECKIN_STAFF` được giả định là email/password. Google login hiện tạo/liên kết tài khoản `CUSTOMER` bằng email đã được Google xác minh.
 
 ### POST /auth/login
 
@@ -84,10 +83,49 @@ Filtering: sử dụng query param riêng theo từng field hỗ trợ, khai bá
 // 200 OK
 {
   "accessToken": "eyJhbGciOi...",
-  "user": { "id": 10, "email": "customer@example.com", "role": "CUSTOMER", "fullName": "Nguyen Van A" }
+  "user": { "id": 10, "email": "customer@example.com", "role": "CUSTOMER", "provider": "LOCAL", "fullName": "Nguyen Van A", "avatarUrl": null }
 }
 // Refresh token được set qua Set-Cookie: refresh_token=...; HttpOnly; Secure; SameSite=Strict
 ```
+
+### POST /auth/google
+
+Frontend renders Google Identity Services, receives a Google ID token, then sends only that token to the backend. The backend verifies signature, expiry, issuer, and audience using `GoogleIdTokenVerifier`; frontend-provided identity fields are not accepted.
+
+```json
+// Request
+{ "idToken": "eyJhbGciOi..." }
+
+// 200 OK
+{
+  "accessToken": "eyJhbGciOi...",
+  "user": {
+    "id": 10,
+    "email": "customer@example.com",
+    "role": "CUSTOMER",
+    "provider": "GOOGLE",
+    "fullName": "Nguyen Van A",
+    "avatarUrl": "https://lh3.googleusercontent.com/...",
+    "assignedEventId": null,
+    "active": true
+  }
+}
+// Refresh token is set through Set-Cookie: refresh_token=...; HttpOnly; Secure; SameSite=Strict
+```
+
+Possible errors:
+
+| HTTP | `errorCode` | Reason |
+|---|---|---|
+| 400 | `VALIDATION_FAILED` | Missing or blank `idToken` |
+| 401 | `INVALID_GOOGLE_TOKEN` | Malformed or rejected Google ID token |
+| 401 | `EXPIRED_GOOGLE_TOKEN` | Google ID token is expired |
+| 401 | `GOOGLE_CLIENT_ID_MISMATCH` | Token audience does not match `GOOGLE_CLIENT_ID` |
+| 403 | `GOOGLE_EMAIL_NOT_VERIFIED` | Google account email is not verified |
+| 403 | `USER_INACTIVE` | Existing local user is disabled |
+| 409 | `GOOGLE_ACCOUNT_CONFLICT` | Google subject conflicts with an existing local user mapping |
+| 503 | `GOOGLE_AUTH_NOT_CONFIGURED` | Backend has no `GOOGLE_CLIENT_ID` |
+| 503 | `GOOGLE_TOKEN_VERIFICATION_FAILED` | Google token verification is temporarily unavailable |
 
 ### POST /auth/refresh
 
@@ -100,6 +138,7 @@ Filtering: sử dụng query param riêng theo từng field hỗ trợ, khai bá
     "id": 1,
     "email": "organizer@example.com",
     "role": "ORGANIZER",
+    "provider": "LOCAL",
     "fullName": "Organizer"
   }
 }

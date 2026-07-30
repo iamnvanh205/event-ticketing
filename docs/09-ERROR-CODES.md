@@ -105,6 +105,13 @@ public class BusinessException extends RuntimeException {
 | `EVENT_OWNERSHIP_VIOLATION` | 403 | Organizer thao tác trên event không thuộc về mình | Update/Delete Event — [`06-AUTHENTICATION.md#6-ownership-check`](./06-AUTHENTICATION.md#6-ownership-check) |
 | `GATE_NOT_FOUND` | 404 | Không tìm thấy cổng check-in | Check-in, quản lý Gate |
 | `INVALID_CREDENTIALS` | 401 | Sai email/mật khẩu | Login |
+| `INVALID_GOOGLE_TOKEN` | 401 | Google ID token không hợp lệ | Google login |
+| `EXPIRED_GOOGLE_TOKEN` | 401 | Google ID token đã hết hạn | Google login |
+| `GOOGLE_CLIENT_ID_MISMATCH` | 401 | Google ID token không đúng audience/client id | Google login |
+| `GOOGLE_EMAIL_NOT_VERIFIED` | 403 | Email trong Google ID token chưa được xác minh | Google login |
+| `GOOGLE_ACCOUNT_CONFLICT` | 409 | Google subject xung đột với user/email đã tồn tại | Google login |
+| `GOOGLE_AUTH_NOT_CONFIGURED` | 503 | Backend chưa có `GOOGLE_CLIENT_ID` | Google login |
+| `GOOGLE_TOKEN_VERIFICATION_FAILED` | 503 | Không thể xác minh token với Google tại thời điểm request | Google login |
 | `INVALID_REFRESH_TOKEN` | 401 | Refresh token không hợp lệ/đã hết hạn | Refresh |
 | `REFRESH_TOKEN_REUSE_DETECTED` | 401 | Refresh token đã bị rotate nhưng vẫn bị dùng lại (khả năng bị đánh cắp) | Refresh — [`06-AUTHENTICATION.md#4-refresh-token-rotation`](./06-AUTHENTICATION.md#4-refresh-token-rotation) |
 | `EMAIL_ALREADY_EXISTS` | 409 | Email đã được đăng ký | Register |

@@ -77,14 +77,14 @@ Kiến trúc Modular Monolith vẫn giữ ranh giới module rõ ràng ngay từ
                               │   - direct conn (migration)│
                               └────────────────────────────┘
 
-                    External services: Google OAuth2, Cloudinary (banner ảnh)
+                    External services: Google Identity Services, Cloudinary (banner anh)
 ```
 
 ## 4. Ranh giới module (module boundaries)
 
 | Module | Trách nhiệm | Entity chính |
 |---|---|---|
-| `auth` | Đăng nhập/đăng ký, JWT issue/refresh, Google OAuth2, quản lý user/role | `User`, `Role` |
+| `auth` | Dang nhap/dang ky, JWT issue/refresh, Google ID token verification, quan ly user/role | `User`, `Role` |
 | `event` | CRUD Event, quản lý loại vé (`TicketType`) | `Event`, `TicketType` |
 | `ticket` | Reserve/Confirm/Cancel vé, sinh QR | `Ticket` |
 | `checkin` | Xử lý quét QR, ghi `CheckInLog`, chống double check-in | `CheckInLog` |

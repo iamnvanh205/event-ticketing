@@ -1,5 +1,6 @@
 package com.vanh.event_ticketing.auth.controller;
 
+import com.vanh.event_ticketing.auth.dto.GoogleLoginRequest;
 import com.vanh.event_ticketing.auth.dto.LoginRequest;
 import com.vanh.event_ticketing.auth.dto.LoginResponse;
 import com.vanh.event_ticketing.auth.dto.RegisterRequest;
@@ -50,6 +51,12 @@ public class AuthController {
         return withRefreshCookie(result.loginResponse(), result.refreshToken());
     }
 
+    @PostMapping("/google")
+    public ResponseEntity<LoginResponse> google(@Valid @RequestBody GoogleLoginRequest request) {
+        AuthService.AuthResult result = authService.googleLogin(request.idToken());
+        return withRefreshCookie(result.loginResponse(), result.refreshToken());
+    }
+
     @PostMapping("/refresh")
     public ResponseEntity<LoginResponse> refresh(HttpServletRequest request) {
         AuthService.AuthResult result = authService.refresh(readRefreshToken(request));
@@ -69,16 +76,6 @@ public class AuthController {
     @GetMapping("/me")
     public UserResponse me(@AuthenticationPrincipal CustomUserDetails userDetails) {
         return authService.me(userDetails);
-    }
-
-    @GetMapping("/google")
-    public ResponseEntity<Void> google() {
-        return ResponseEntity.status(302).header(HttpHeaders.LOCATION, "/oauth2/authorization/google").build();
-    }
-
-    @GetMapping("/google/callback")
-    public ResponseEntity<Void> googleCallback() {
-        throw new BusinessException(ErrorCode.GOOGLE_OAUTH_NOT_CONFIGURED);
     }
 
     private ResponseEntity<LoginResponse> withRefreshCookie(LoginResponse body, String refreshToken) {

@@ -1,6 +1,7 @@
 package com.vanh.event_ticketing.support;
 
 import com.vanh.event_ticketing.auth.entity.Role;
+import com.vanh.event_ticketing.auth.entity.AuthProvider;
 import com.vanh.event_ticketing.auth.entity.User;
 import com.vanh.event_ticketing.event.entity.Event;
 import com.vanh.event_ticketing.event.entity.TicketType;
@@ -25,6 +26,7 @@ public final class TestDataBuilder {
         user.setEmail(UUID.randomUUID() + "@test.local");
         user.setFullName("Test " + role.getName());
         user.setPasswordHash("test");
+        user.setProvider(AuthProvider.LOCAL);
         user.setRole(role);
         user.setActive(true);
         return user;

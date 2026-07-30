@@ -11,7 +11,9 @@ public class UserMapper {
                 user.getId(),
                 user.getEmail(),
                 user.getRole().getName(),
+                user.getProvider() == null ? "LOCAL" : user.getProvider().name(),
                 user.getFullName(),
+                user.getAvatarUrl(),
                 user.getAssignedEventId(),
                 user.isActive()
         );

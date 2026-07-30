@@ -140,7 +140,7 @@ Mô tả các bước trong luồng nghiệp vụ:
 | Backend | Java 21, Spring Boot 3.5, Spring Security, Spring Data JPA, Spring WebSocket (STOMP) |
 | Frontend | React + Vite + TypeScript, Tailwind CSS + shadcn/ui, `@stomp/stompjs` |
 | Database | PostgreSQL (Neon) |
-| Xác thực | JWT (access token + refresh token) + Google OAuth2 (Customer) |
+| Xac thuc | JWT (access token + refresh token) + Google Identity Services ID token login (Customer) |
 | QR Code | ZXing (sinh QR tại backend), `html5-qrcode` (quét QR tại frontend) |
 | Migration | Flyway |
 | Build tool | Maven (backend), npm (frontend) |
@@ -159,7 +159,7 @@ Chi tiết đầy đủ được mô tả tại [`01-ARCHITECTURE.md`](./01-ARCH
 | `03-CODING-STANDARDS.md` | Quy ước lập trình, quy ước đặt tên |
 | `04-API.md` | Danh sách API, request/response, versioning |
 | `05-DATABASE.md` | Schema cơ sở dữ liệu, quan hệ, index, migration |
-| `06-AUTHENTICATION.md` | JWT, OAuth2, RBAC, kiểm tra ownership |
+| `06-AUTHENTICATION.md` | JWT, Google Identity Services, RBAC, kiem tra ownership |
 | `07-BUSINESS-RULES.md` | Toàn bộ quy tắc nghiệp vụ, luồng xử lý, trường hợp biên |
 | `08-UI-UX.md` | Hệ thống thiết kế, responsive, khả năng truy cập (accessibility) |
 | `09-ERROR-CODES.md` | Mã lỗi, HTTP status, xử lý ngoại lệ |

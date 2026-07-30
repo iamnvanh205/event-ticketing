@@ -33,6 +33,9 @@ jwt:
   access-token-expiration: 900000
   refresh-token-expiration: 604800000
 
+google:
+  client-id: "test-google-client-id"
+
 # CORS
 cors:
   allowed-origins: "http://localhost:5173"
@@ -40,12 +43,6 @@ cors:
 # Cookie
 cookie:
   secure: false
-
-# OAuth2 — không test trong IT tests
-oauth2:
-  google:
-    client-id: ""
-    client-secret: ""
 
 # Cloudinary — không test trong IT tests
 cloudinary:

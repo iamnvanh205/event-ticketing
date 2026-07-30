@@ -27,7 +27,10 @@ public class JwtTokenProvider {
         Date now = new Date();
         return Jwts.builder()
                 .subject(user.getId().toString())
+                .claim("userId", user.getId())
+                .claim("email", user.getEmail())
                 .claim("role", user.getRole().getName())
+                .claim("provider", user.getProvider() == null ? "LOCAL" : user.getProvider().name())
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + accessTokenExpirationMs))
                 .signWith(signingKey)

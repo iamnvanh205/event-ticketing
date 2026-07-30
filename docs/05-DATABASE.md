@@ -115,9 +115,12 @@ CREATE TABLE roles (
 |---|---|---|---|
 | `id` | `BIGINT` | PK | |
 | `email` | `VARCHAR(255)` | `UNIQUE NOT NULL` | |
-| `password_hash` | `VARCHAR(255)` | `NULL` | NULL nếu tài khoản chỉ đăng nhập qua Google OAuth2 |
+| `password_hash` | `VARCHAR(255)` | `NULL` | NULL nếu tài khoản chỉ đăng nhập qua Google Identity Services |
 | `google_id` | `VARCHAR(255)` | `UNIQUE NULL` | ID tài khoản Google, NULL nếu đăng ký email/password |
+| `provider` | `VARCHAR(20)` | `NOT NULL DEFAULT 'LOCAL'`, `CHECK (LOCAL, GOOGLE)` | Nguồn xác thực chính: `LOCAL` hoặc `GOOGLE` |
 | `full_name` | `VARCHAR(255)` | `NOT NULL` | |
+| `avatar_url` | `VARCHAR(500)` | `NULL` | Ảnh đại diện từ Google verified payload |
+| `last_login_at` | `TIMESTAMPTZ` | `NULL` | Thời điểm login Google gần nhất |
 | `role_id` | `BIGINT` | `FK → roles.id NOT NULL` | |
 | `assigned_event_id` | `BIGINT` | `FK → events.id NULL` | Chỉ có giá trị khi `role = CHECKIN_STAFF`; xác định event mà staff được gán |
 | `is_active` | `BOOLEAN` | `NOT NULL DEFAULT true` | Khoá tài khoản (thao tác bởi ADMIN) |
@@ -131,7 +134,10 @@ CREATE TABLE users (
     email              VARCHAR(255) NOT NULL UNIQUE,
     password_hash      VARCHAR(255),
     google_id          VARCHAR(255) UNIQUE,
+    provider           VARCHAR(20) NOT NULL DEFAULT 'LOCAL',
     full_name          VARCHAR(255) NOT NULL,
+    avatar_url         VARCHAR(500),
+    last_login_at      TIMESTAMPTZ,
     role_id            BIGINT NOT NULL REFERENCES roles(id),
     assigned_event_id  BIGINT REFERENCES events(id),
     is_active          BOOLEAN NOT NULL DEFAULT true,
@@ -140,13 +146,16 @@ CREATE TABLE users (
     updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+ALTER TABLE users
+    ADD CONSTRAINT chk_users_provider CHECK (provider IN ('LOCAL', 'GOOGLE'));
+
 CREATE INDEX idx_users_role_id ON users(role_id);
 CREATE INDEX idx_users_assigned_event_id ON users(assigned_event_id);
 ```
 
 **Design Consideration:** ràng buộc `assigned_event_id` chỉ có ý nghĩa với `CHECKIN_STAFF`, được xử lý ở tầng ứng dụng (Bean Validation/Service), không dùng `CHECK constraint` phụ thuộc bảng khác ở mức DB để giữ đơn giản.
 
-**Known Limitations:** bảng `users` hiện có cả `password_hash` và `google_id` để hỗ trợ hai kiểu đăng nhập (email/password cho Organizer/Admin/Checkin Staff, Google OAuth2 cho Customer) theo giả định tại [`04-API.md`](./04-API.md#4-module-auth). Giả định này cần được xác nhận chính thức trước khi thực hiện migration.
+`users.email` chống duplicate account theo email. `users.google_id` chống duplicate Google subject. Khi Google login dùng email đã tồn tại ở tài khoản local, backend liên kết `google_id` vào user hiện có thay vì tạo dòng mới.
 
 ## 6. Bảng: events
 
@@ -348,7 +357,8 @@ Quy ước đặt tên file: `V<version>__<mo_ta_snake_case>.sql`, đặt tại 
 V1__init_schema.sql          -- tạo toàn bộ bảng ở mục 4-10
 V2__seed_roles.sql           -- seed 4 role
 V3__seed_demo_data.sql       -- seed dữ liệu demo (mục 14)
-V4__add_xxx.sql              -- các thay đổi schema sau này, luôn tăng version, không sửa lại file cũ
+V4__add_google_auth_user_fields.sql -- provider, avatar_url, last_login_at cho users
+V5__add_xxx.sql              -- các thay đổi schema sau này, luôn tăng version, không sửa lại file cũ
 ```
 
 **Quy tắc bắt buộc:** không sửa lại một file migration đã chạy trên bất kỳ môi trường nào (kể cả local) — luôn tạo file mới với version tăng dần.

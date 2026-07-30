@@ -18,6 +18,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
 
     @EntityGraph(attributePaths = "role")
+    Optional<User> findByGoogleId(String googleId);
+
+    @EntityGraph(attributePaths = "role")
     List<User> findByAssignedEventIdAndRole_NameAndActiveTrue(Long assignedEventId, String roleName);
 
     @EntityGraph(attributePaths = "role")

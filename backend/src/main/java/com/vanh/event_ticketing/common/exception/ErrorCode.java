@@ -27,7 +27,13 @@ public enum ErrorCode {
     GATE_NOT_FOUND(HttpStatus.NOT_FOUND, "Gate Not Found", "Khong tim thay cong check-in."),
     CHECKIN_GATE_EVENT_MISMATCH(HttpStatus.BAD_REQUEST, "Check-in Gate Event Mismatch", "Cong check-in khong thuoc su kien cua ve."),
     CHECKIN_STAFF_EVENT_MISMATCH(HttpStatus.FORBIDDEN, "Check-in Staff Event Mismatch", "Nhan vien khong duoc gan vao su kien nay."),
-    GOOGLE_OAUTH_NOT_CONFIGURED(HttpStatus.NOT_IMPLEMENTED, "Google OAuth Not Configured", "Google OAuth chua duoc cau hinh cho moi truong nay.");
+    GOOGLE_AUTH_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "Google Auth Not Configured", "Google authentication chua duoc cau hinh cho moi truong nay."),
+    INVALID_GOOGLE_TOKEN(HttpStatus.UNAUTHORIZED, "Invalid Google Token", "Google ID token khong hop le."),
+    EXPIRED_GOOGLE_TOKEN(HttpStatus.UNAUTHORIZED, "Expired Google Token", "Google ID token da het han."),
+    GOOGLE_CLIENT_ID_MISMATCH(HttpStatus.UNAUTHORIZED, "Google Client ID Mismatch", "Google ID token khong duoc cap cho ung dung nay."),
+    GOOGLE_EMAIL_NOT_VERIFIED(HttpStatus.FORBIDDEN, "Google Email Not Verified", "Email Google chua duoc xac minh."),
+    GOOGLE_ACCOUNT_CONFLICT(HttpStatus.CONFLICT, "Google Account Conflict", "Google account bi xung dot voi tai khoan da ton tai."),
+    GOOGLE_TOKEN_VERIFICATION_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "Google Token Verification Failed", "Khong the xac minh Google ID token luc nay.");
 
     private final HttpStatus httpStatus;
     private final String title;

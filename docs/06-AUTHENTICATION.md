@@ -4,7 +4,7 @@
 
 1. [Tổng quan cơ chế](#1-tổng-quan-cơ-chế)
 2. [JWT — Access Token & Refresh Token](#2-jwt--access-token--refresh-token)
-3. [Google OAuth2 (Customer)](#3-google-oauth2-customer)
+3. [Google Identity Services (Customer)](#3-google-identity-services-customer)
 4. [Refresh Token Rotation](#4-refresh-token-rotation)
 5. [RBAC — Role-Based Access Control](#5-rbac--role-based-access-control)
 6. [Ownership Check](#6-ownership-check)
@@ -20,7 +20,7 @@
 | Thành phần | Lựa chọn |
 |---|---|
 | Cơ chế xác thực | JWT (access token + refresh token) |
-| Đăng nhập Customer | Google OAuth2 hoặc email/password |
+| Đăng nhập Customer | Google Identity Services ID token hoặc email/password |
 | Đăng nhập Organizer/Admin/Checkin Staff | Email/password |
 | Access token TTL | 15 phút |
 | Refresh token TTL | 7 ngày |
@@ -28,7 +28,7 @@
 | Refresh token rotation | Có |
 | Phân quyền | RBAC theo 4 role cố định + kiểm tra ownership ở tầng Service |
 
-**Design Consideration:** phương thức đăng nhập email/password cho `ORGANIZER`/`ADMIN`/`CHECKIN_STAFF` là giả định hợp lý dựa trên ngữ cảnh dự án, cần được xác nhận chính thức trước khi triển khai, vì nghiên cứu ban đầu chỉ chốt chắc chắn phần Customer dùng Google OAuth2.
+**Design Consideration:** phương thức đăng nhập email/password cho `ORGANIZER`/`ADMIN`/`CHECKIN_STAFF` là giả định hợp lý dựa trên ngữ cảnh dự án. Google login hiện dành cho luồng Customer và được backend đổi thành JWT nội bộ.
 
 ## 2. JWT — Access Token & Refresh Token
 
@@ -49,11 +49,14 @@ public class JwtTokenProvider {
 
     public String generateAccessToken(User user) {
         return Jwts.builder()
-                .setSubject(user.getId().toString())
+                .subject(user.getId().toString())
+                .claim("userId", user.getId())
+                .claim("email", user.getEmail())
                 .claim("role", user.getRole().getName())
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_TTL))
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .claim("provider", user.getProvider().name())
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_TTL))
+                .signWith(signingKey)
                 .compact();
     }
 }
@@ -61,36 +64,36 @@ public class JwtTokenProvider {
 
 Access token không được lưu tại `localStorage`/`sessionStorage` nhằm giảm rủi ro XSS — được giữ trong state của ứng dụng (React state/context), chấp nhận mất khi tải lại trang (tự động lấy lại qua `/auth/refresh` nhờ cookie).
 
-## 3. Google OAuth2 (Customer)
+## 3. Google Identity Services (Customer)
 
-Luồng Authorization Code chuẩn, sử dụng Spring Security OAuth2 Client:
+Backend khong dung `spring-boot-starter-oauth2-client`, `oauth2Login()`, session, hoac Google access token cho API noi bo. Google chi duoc dung de xac minh danh tinh ban dau; sau do backend la source of truth va phat hanh JWT noi bo.
 
 ```
-Customer bấm "Đăng nhập với Google"
-   → GET /auth/google (redirect tới Google consent screen)
-   → Google redirect về GET /auth/google/callback?code=...
-   → Backend đổi code lấy Google profile (email, name)
-   → Tìm hoặc tạo User (role = CUSTOMER, google_id = <id Google>)
-   → Sinh access token + refresh token như luồng thường
-   → Redirect về frontend kèm access token (hoặc set cookie + redirect)
+Customer bam Google Login tren React
+   -> Google Identity Services tra ve Google ID token cho frontend
+   -> Frontend POST /api/v1/auth/google voi { "idToken": "..." }
+   -> Backend verify ID token bang GoogleIdTokenVerifier
+   -> Backend doc sub/email/name/picture/email_verified tu verified payload
+   -> Backend tim user bang google_id/email, lien ket local account neu email da ton tai
+   -> Backend cap access token + refresh token nhu luong login hien co
+   -> Frontend goi API protected bang Authorization: Bearer <backend JWT>
 ```
 
 ```yaml
-# application.yml
-spring:
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: ${GOOGLE_CLIENT_ID}
-            client-secret: ${GOOGLE_CLIENT_SECRET}
-            scope: [ email, profile ]
+google:
+  client-id: ${GOOGLE_CLIENT_ID:}
 ```
 
-Tài khoản đăng ký qua Google OAuth2 có `password_hash = NULL`, `google_id` = ID Google. Nếu email đã tồn tại qua đăng ký thường (có `password_hash`), khuyến nghị liên kết tài khoản theo `email` thay vì tạo user trùng.
+Google-created users have `password_hash = NULL`, `provider = GOOGLE`, and `google_id = Google sub`. If a local account already exists with the same verified email, the backend links `google_id` to that user instead of creating a duplicate. `users.email` and `users.google_id` remain unique at the database level.
 
-**Known Limitations:** chi tiết xử lý xung đột khi email đã tồn tại qua kênh đăng ký khác cần được xác nhận thêm khi triển khai thực tế.
+The backend rejects invalid, expired, unverified-email, and wrong-audience Google ID tokens. It never accepts `email`, `name`, `picture`, `role`, or provider fields from the frontend request body.
+
+Google Cloud Console setup:
+
+- Create an OAuth 2.0 Web client.
+- Add frontend origins to Authorized JavaScript origins, for example `http://localhost:5173` and the Vercel production origin.
+- Redirect URIs are not used by this backend flow because GIS returns the ID token directly to the frontend.
+- Put the Web client ID in backend `GOOGLE_CLIENT_ID`; the frontend also needs the same public client ID as `VITE_GOOGLE_CLIENT_ID`.
 
 ## 4. Refresh Token Rotation
 

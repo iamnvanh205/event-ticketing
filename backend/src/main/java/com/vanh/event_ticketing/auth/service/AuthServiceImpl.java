@@ -4,9 +4,12 @@ import com.vanh.event_ticketing.auth.dto.LoginRequest;
 import com.vanh.event_ticketing.auth.dto.LoginResponse;
 import com.vanh.event_ticketing.auth.dto.RegisterRequest;
 import com.vanh.event_ticketing.auth.dto.UserResponse;
+import com.vanh.event_ticketing.auth.entity.AuthProvider;
 import com.vanh.event_ticketing.auth.entity.RefreshToken;
 import com.vanh.event_ticketing.auth.entity.Role;
 import com.vanh.event_ticketing.auth.entity.User;
+import com.vanh.event_ticketing.auth.google.GoogleAccount;
+import com.vanh.event_ticketing.auth.google.GoogleTokenVerifier;
 import com.vanh.event_ticketing.auth.mapper.UserMapper;
 import com.vanh.event_ticketing.auth.repository.RefreshTokenRepository;
 import com.vanh.event_ticketing.auth.repository.RoleRepository;
@@ -26,6 +29,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
@@ -46,6 +50,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserMapper userMapper;
+    private final GoogleTokenVerifier googleTokenVerifier;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Value("${jwt.refresh-token-expiration}")
@@ -65,6 +70,7 @@ public class AuthServiceImpl implements AuthService {
         User user = new User();
         user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(request.password()));
+        user.setProvider(AuthProvider.LOCAL);
         user.setFullName(request.fullName().trim());
         user.setRole(customerRole);
         user.setActive(true);
@@ -84,6 +90,24 @@ public class AuthServiceImpl implements AuthService {
         if (user.getPasswordHash() == null || !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
+        return issueTokens(user);
+    }
+
+    @Override
+    @Transactional
+    public AuthResult googleLogin(String idToken) {
+        GoogleAccount account = googleTokenVerifier.verify(idToken);
+        User user = findOrCreateGoogleUser(account);
+        if (!user.isActive()) {
+            throw new BusinessException(ErrorCode.USER_INACTIVE);
+        }
+
+        user.setGoogleId(account.subject());
+        user.setProvider(AuthProvider.GOOGLE);
+        user.setEmail(normalizeEmail(account.email()));
+        user.setFullName(displayName(account));
+        user.setAvatarUrl(account.picture());
+        user.setLastLoginAt(Instant.now());
         return issueTokens(user);
     }
 
@@ -136,6 +160,7 @@ public class AuthServiceImpl implements AuthService {
         User user = new User();
         user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(request.password()));
+        user.setProvider(AuthProvider.LOCAL);
         user.setFullName(request.fullName().trim());
         user.setRole(role);
         user.setAssignedEventId(event.getId());
@@ -208,6 +233,48 @@ public class AuthServiceImpl implements AuthService {
 
     private String normalizeEmail(String email) {
         return email.trim().toLowerCase();
+    }
+
+    private User findOrCreateGoogleUser(GoogleAccount account) {
+        String email = normalizeEmail(account.email());
+        Optional<User> byGoogleId = userRepository.findByGoogleId(account.subject());
+        Optional<User> byEmail = userRepository.findByEmail(email);
+
+        if (byGoogleId.isPresent() && byEmail.isPresent() && !byGoogleId.get().getId().equals(byEmail.get().getId())) {
+            throw new BusinessException(ErrorCode.GOOGLE_ACCOUNT_CONFLICT);
+        }
+        if (byGoogleId.isPresent()) {
+            return byGoogleId.get();
+        }
+        if (byEmail.isPresent()) {
+            User user = byEmail.get();
+            if (user.getGoogleId() != null && !user.getGoogleId().equals(account.subject())) {
+                throw new BusinessException(ErrorCode.GOOGLE_ACCOUNT_CONFLICT);
+            }
+            return user;
+        }
+
+        Role customerRole = roleRepository.findByName(CUSTOMER_ROLE)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        User user = new User();
+        user.setEmail(email);
+        user.setGoogleId(account.subject());
+        user.setProvider(AuthProvider.GOOGLE);
+        user.setFullName(displayName(account));
+        user.setAvatarUrl(account.picture());
+        user.setLastLoginAt(Instant.now());
+        user.setRole(customerRole);
+        user.setActive(true);
+        return userRepository.save(user);
+    }
+
+    private String displayName(GoogleAccount account) {
+        if (account.name() != null && !account.name().isBlank()) {
+            return account.name().trim();
+        }
+        String email = normalizeEmail(account.email());
+        int atIndex = email.indexOf('@');
+        return atIndex > 0 ? email.substring(0, atIndex) : email;
     }
 
     private Event ownedEvent(Long eventId, CustomUserDetails userDetails) {

@@ -127,7 +127,7 @@ Quản lý trực tiếp qua Environment Variables trên dashboard Render/Vercel
 | `DATABASE_URL` | Render | Pooled connection (Neon) |
 | `DATABASE_URL_DIRECT` | Render | Direct connection, chỉ dùng migration |
 | `JWT_SECRET` | Render | Tối thiểu 256-bit, sinh ngẫu nhiên |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Render | Google OAuth2 |
+| `GOOGLE_CLIENT_ID` | Render | Google Identity Services Web client ID used to verify ID tokens |
 | `CLOUDINARY_URL` | Render | Upload banner event |
 | `VITE_API_BASE_URL` | Vercel | URL backend production |
 | `VITE_WS_URL` | Vercel | URL WebSocket production |
