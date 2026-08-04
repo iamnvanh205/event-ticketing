@@ -76,10 +76,18 @@
   width: 2rem;
   height: 2rem;
   place-items: center;
-  border-radius: var(--radius-s);
-  background: var(--primary);
-  color: var(--primary-foreground);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--card);
   box-shadow: var(--shadow-1);
+}
+
+.brand-mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .topbar nav {
@@ -231,6 +239,13 @@
   display: grid;
   gap: var(--space-1);
   margin-top: auto;
+}
+
+.sidebar-footer .nav-link,
+.sidebar-footer .theme-toggle,
+.sidebar-footer .language-toggle {
+  width: 100%;
+  justify-content: flex-start;
 }
 
 .sidebar-user {
@@ -1247,30 +1262,54 @@ textarea {
   padding: 0 var(--space-8);
 }
 
+.auth-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+:root {
+  --auth-story-background:
+    radial-gradient(circle at 74% 25%, color-mix(in srgb, var(--iris-500) 16%, transparent), transparent 28%),
+    radial-gradient(circle at 18% 82%, color-mix(in srgb, var(--coral-400) 12%, transparent), transparent 30%),
+    linear-gradient(145deg, var(--neutral-50), var(--neutral-100));
+  --auth-story-foreground: var(--neutral-900);
+  --auth-story-muted: var(--neutral-600);
+  --auth-story-eyebrow: var(--iris-700);
+}
+
+.dark {
+  --auth-story-background:
+    radial-gradient(circle at 74% 25%, color-mix(in srgb, var(--iris-500) 40%, transparent), transparent 30%),
+    radial-gradient(circle at 18% 82%, color-mix(in srgb, var(--coral-400) 18%, transparent), transparent 30%),
+    linear-gradient(145deg, var(--neutral-900), var(--neutral-950));
+  --auth-story-foreground: var(--neutral-50);
+  --auth-story-muted: var(--neutral-300);
+  --auth-story-eyebrow: var(--iris-300);
+}
+
 .auth-story {
   display: grid;
   align-content: center;
   gap: var(--space-10);
   padding: var(--space-16) clamp(2rem, 8vw, 8rem);
-  background:
-    radial-gradient(circle at 74% 25%, color-mix(in srgb, var(--iris-500) 40%, transparent), transparent 30%),
-    linear-gradient(145deg, var(--neutral-900), var(--neutral-950));
-  color: var(--neutral-50);
+  background: var(--auth-story-background);
+  color: var(--auth-story-foreground);
 }
 
 .auth-story .eyebrow {
-  color: var(--iris-300);
+  color: var(--auth-story-eyebrow);
 }
 
 .auth-story > div > p:not(.eyebrow) {
-  color: var(--neutral-300);
+  color: var(--auth-story-muted);
 }
 
 .auth-proof {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-5);
-  color: var(--neutral-300);
+  color: var(--auth-story-muted);
   font-size: 0.875rem;
 }
 

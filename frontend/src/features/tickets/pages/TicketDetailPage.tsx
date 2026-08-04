@@ -1,6 +1,7 @@
-import { ArrowLeft, CalendarDays, CheckCircle2, Clock3, Copy, MapPin, QrCode } from 'lucide-react'
+import { ArrowLeft, CalendarDays, CheckCircle2, Clock3, Copy, MapPin } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { toast } from 'sonner'
+import { BrandMark } from '../../../components/layout/BrandMark'
 import { PageState } from '../../../components/ui/feedback'
 import { dateOnly, timeOnly } from '../../../lib/format'
 import { TicketStatus } from '../components/TicketStatus'
@@ -33,7 +34,7 @@ export function TicketDetailPage({ ticketId }: { ticketId: number }) {
       <div className="ticket-detail-layout">
         <section className={`admission-pass ${canEnter ? 'valid' : ''}`}>
           <div className="admission-pass-header">
-            <span className="brand-mark" aria-hidden="true"><QrCode size={18} /></span>
+            <BrandMark />
             <TicketStatus status={ticket.status} />
           </div>
           {canEnter ? (

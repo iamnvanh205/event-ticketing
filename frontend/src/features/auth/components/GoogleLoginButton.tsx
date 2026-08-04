@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { KeyRound, LoaderCircle } from 'lucide-react'
+import { useLanguageCopy } from '../../../lib/language'
 import { useAuth } from '../hooks/useAuth'
 
 const GOOGLE_IDENTITY_SCRIPT = 'https://accounts.google.com/gsi/client'
@@ -65,6 +66,7 @@ export function GoogleLoginButton() {
   const [ready, setReady] = useState(false)
   const [error, setError] = useState('')
   const { googleLogin, loading } = useAuth()
+  const ui = useLanguageCopy()
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
 
   useEffect(() => {
@@ -90,7 +92,7 @@ export function GoogleLoginButton() {
             try {
               await googleLogin(response.credential)
             } catch {
-              setError('Google sign-in failed. Try again.')
+              setError(ui.auth.googleFailed)
             }
           },
         })
@@ -104,12 +106,12 @@ export function GoogleLoginButton() {
         })
         setReady(true)
       })
-      .catch(() => setError('Google sign-in is unavailable.'))
+      .catch(() => setError(ui.auth.googleUnavailable))
 
     return () => {
       cancelled = true
     }
-  }, [googleClientId, googleLogin])
+  }, [googleClientId, googleLogin, ui])
 
   return (
     <div className="google-login-wrap">
@@ -117,7 +119,7 @@ export function GoogleLoginButton() {
       {!ready && (
         <button className="outline-action" type="button" disabled={!googleClientId || loading} aria-busy={loading}>
           {loading ? <LoaderCircle className="animate-spin" aria-hidden="true" size={18} /> : <KeyRound aria-hidden="true" size={18} />}
-          Continue with Google
+          {ui.auth.continueWithGoogle}
         </button>
       )}
       {error && <p className="form-error" role="alert">{error}</p>}
